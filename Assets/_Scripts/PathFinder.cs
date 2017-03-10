@@ -11,6 +11,7 @@ public class PathFinder : MonoBehaviour
     private void Awake()
     {
         _grid = GetComponent<Grid>();
+        Debug.Log("hello");
     }
 
     private void Update()
