@@ -154,13 +154,25 @@ public class PathFinder : MonoBehaviour
     /// </summary>
     /// <param name="c1">The first cluster</param>
     /// <param name="c2">The second cluster</param>
-    private Entrance BuildEntrances(Cluster c1, Cluster c2)
+    private List<Entrance> BuildEntrances(Cluster c1, Cluster c2)
     {
         var direction = CheckDirection(c1, c2);
+        var entrances = new List<Entrance>();
         switch (direction)
         {
             case Direction.North:
-
+                var l1 = new Node[c1.Nodes.Length];
+                var l2 = new Node[c2.Nodes.Length];
+                for (int i = 0; i < l1.Length; i++)
+                {
+                    l1[i] = c1.Nodes[i, 0];
+                    l2[i] = c2.Nodes[i, c2.Nodes.Length - 1];
+                }
+                var openings = new List<Node[]>();
+                for (int i = 0; i < l1.Length; i++)
+                {
+                    
+                }
                 break;
             case Direction.East:
                 break;
