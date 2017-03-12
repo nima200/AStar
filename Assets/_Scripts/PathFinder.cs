@@ -157,7 +157,20 @@ public class PathFinder : MonoBehaviour
     private Entrance BuildEntrances(Cluster c1, Cluster c2)
     {
         var direction = CheckDirection(c1, c2);
+        switch (direction)
+        {
+            case Direction.North:
 
+                break;
+            case Direction.East:
+                break;
+            case Direction.South:
+                break;
+            case Direction.West:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
         return null;
     }
 
