@@ -1,24 +1,28 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Networking.NetworkSystem;
+using System.Linq;
+using JetBrains.Annotations;
 
 public class PathFinder : MonoBehaviour
 {
     private Grid _grid;
-    public Transform Seeker, Target;
+    public Transform Source, Target;
 
+    [UsedImplicitly]
     private void Awake()
     {
         _grid = GetComponent<Grid>();
     }
 
+    [UsedImplicitly]
     private void Update()
     {
         // Constantly check for A* Path between the start and end
-        FindPath(Seeker.position, Target.position);
+        FindPath(Source.position, Target.position);
     }
 
+    // A*
     private void FindPath(Vector3 startPosition, Vector3 endPosition)
     {
         var startNode = _grid.NodeFromWorld(startPosition);
@@ -115,5 +119,109 @@ public class PathFinder : MonoBehaviour
             return 14 * distanceY + 10 * (distanceX - distanceY);
         }
         return 14 * distanceX + 10 * (distanceY - distanceX);
+    }
+
+    private void PreProcess(int maxLevel)
+    {
+        
+    }
+
+    private void AbstractMaze()
+    {
+        var clusters = BuildClusters(1);
+        var clusterPairs = (from c1 in clusters
+            from c2 in clusters
+            select new Pair<Cluster,Cluster>(c1, c2)).ToList();
+        foreach (var pair in clusterPairs)
+        {
+            // If the pair's elements are adjacent
+            if ((pair.B.X == pair.A.X + 1 && pair.B.Y == pair.A.Y) ||
+                (pair.B.X == pair.A.X - 1 && pair.B.Y == pair.A.Y) ||
+                (pair.B.Y == pair.A.Y + 1 && pair.B.X == pair.A.X) ||
+                (pair.B.Y == pair.A.Y - 1 && pair.B.X == pair.A.X))
+            {
+
+            }
+        }
+
+    }
+    /// <summary>
+    /// Builds an entrance between the two clusters, given the following rules
+    /// 1) Border Limitation Condition: The entrance is defined along and cannot exceed the border between two adjacent clusters
+    /// 2) Symmetry Condition: t is part of the transition between c1 and c2, if and only if symT is also a part of the transition and on the opposite cluster that t was in
+    /// 3) Obstacle Free Condition: An entrance contains no obstacle tiles
+    /// 4) Maximality Condition: An entrance is extended in both directions as long as the previous conditions remain true
+    /// </summary>
+    /// <param name="c1">The first cluster</param>
+    /// <param name="c2">The second cluster</param>
+    private Entrance BuildEntrances(Cluster c1, Cluster c2)
+    {
+        var direction = CheckDirection(c1, c2);
+
+        return null;
+    }
+
+    private static Direction CheckDirection(Cluster c1, Cluster c2)
+    {
+        if (c2.X == c1.X + 1 && c2.Y == c1.Y)
+        {
+            return Direction.East;
+        }
+        if (c2.X == c1.X - 1 && c2.Y == c1.Y)
+        {
+            return Direction.West;
+        }
+        if (c2.Y == c1.Y + 1 && c2.X == c1.X)
+        {
+            return Direction.North;
+        }
+        if (c2.Y == c1.Y - 1 && c2.X == c1.X)
+        {
+            return Direction.South;    
+        }
+        throw new ArgumentException("Invalid clusters! Possible not adjacent.");
+    }
+
+    private List<Cluster> BuildClusters(int level)
+    {
+        int scaleFactor = 5;
+        // Assuming grid is square for now
+        int sideLength = Mathf.RoundToInt(_grid.GridWorldSize.x / scaleFactor);
+        var clusters = new List<Cluster>();
+
+        for (int x = 0; x < scaleFactor; x++)
+        {
+            for (int y = 0; y < scaleFactor; y++)
+            {
+                var cluster = new Cluster(sideLength, x, y);
+                for (int i = 0; i < sideLength; i++)
+                {
+                    for (int j = 0; j < sideLength; j++)
+                    {
+                        cluster.Set(_grid.Nodes[i + (x * sideLength), j + (y * sideLength)], i, j);
+                    }
+                }
+                clusters.Add(cluster);
+            }
+        }
+        return clusters;
+    }
+    public class Entrance
+    {
+        public List<Node[]> Lines { get; private set; }
+        public Pair<Node, Node> Transition { get; private set; }
+        public Node[] L1 { get; private set; }
+        public Node[] L2 { get; private set; }
+        public Entrance(Node[] l1, Node[] l2)
+        {
+            L1 = l1;
+            L2 = l2;
+            Lines = new List<Node[]>(2) {L1, L2};
+            // Assuming the right L1, L2 was passed, having the same length.
+            int midpointIndex = L1.Length / 2;
+            var t = L1[midpointIndex];
+            var symT = L2[midpointIndex];
+            Transition = new Pair<Node, Node>(t, symT);
+        }
     }
 }

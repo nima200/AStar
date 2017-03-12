@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Net;
+﻿using System.Collections.Generic;
 using JetBrains.Annotations;
 using UnityEngine;
 
@@ -9,7 +7,7 @@ public class Grid : MonoBehaviour
     public LayerMask UnwalkableMask;
     public Vector2 GridWorldSize;
     public float NodeRadius;
-    private Node[,] _grid;
+    public Node[,] Nodes { get; private set; }
     private float _nodeDiameter;
     private int _gridSizeX, _gridSizeY;
     public List<Node> Path;
@@ -25,7 +23,7 @@ public class Grid : MonoBehaviour
 
     private void CreateGrid()
     {
-        _grid = new Node[_gridSizeX, _gridSizeY];
+        Nodes = new Node[_gridSizeX, _gridSizeY];
         // Left edge of the world
         var worldBottomLeft = transform.position - Vector3.right * _gridSizeX / 2 - Vector3.forward * GridWorldSize.y / 2; 
 
@@ -37,7 +35,7 @@ public class Grid : MonoBehaviour
                                      Vector3.forward * (y * _nodeDiameter + NodeRadius);
                 // True if we don't collide with anything in the unwalkable mask
                 bool walkable = !(Physics.CheckSphere(worldPoint, NodeRadius, UnwalkableMask));
-                _grid[x,y] = new Node(walkable, worldPoint, x, y);
+                Nodes[x,y] = new Node(walkable, worldPoint, x, y);
             }
         }
     }
@@ -55,15 +53,15 @@ public class Grid : MonoBehaviour
         int x = Mathf.RoundToInt((_gridSizeX - 1) * percentX); // - 1 on gsX to avoid falling out of array
         int y = Mathf.RoundToInt((_gridSizeY - 1) * percentY); // - 1 on gsY to avoid falling out of array
 
-        return _grid[x, y];
+        return Nodes[x, y];
     }
 
     [UsedImplicitly]
     private void OnDrawGizmos()
     {
         Gizmos.DrawWireCube(transform.position, new Vector3(GridWorldSize.x, 1, GridWorldSize.y));
-        if (_grid == null) return;
-        foreach (var node in _grid)
+        if (Nodes == null) return;
+        foreach (var node in Nodes)
         {
             Gizmos.color = (node.Walkable) ? Color.white : Color.red;
             if (Path != null)
@@ -94,7 +92,7 @@ public class Grid : MonoBehaviour
                 // Making sure to not return a neighbor that doesnt exist because it's a location out of the grid
                 if (neighborX >= 0 && neighborX < _gridSizeX && neighborY >= 0 && neighborY < _gridSizeY)
                 {
-                    neighbors.Add(_grid[neighborX, neighborY]);
+                    neighbors.Add(Nodes[neighborX, neighborY]);
                 }
             }
         }
