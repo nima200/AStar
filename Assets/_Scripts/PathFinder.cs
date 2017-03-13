@@ -161,18 +161,14 @@ public class PathFinder : MonoBehaviour
         switch (direction)
         {
             case Direction.North:
-                var l1 = new Node[c1.Nodes.Length];
-                var l2 = new Node[c2.Nodes.Length];
+                var l1 = new Node[c1.Nodes.Length]; 
+                var l2 = new Node[c2.Nodes.Length]; 
                 for (int i = 0; i < l1.Length; i++)
                 {
-                    l1[i] = c1.Nodes[i, 0];
-                    l2[i] = c2.Nodes[i, c2.Nodes.Length - 1];
+                    l1[i] = c1.Nodes[i, 0]; // The edge shared by c1 in the entrance
+                    l2[i] = c2.Nodes[i, c2.Nodes.Length - 1]; // The edge shared by c2 in the entrance
                 }
-                var openings = new List<Node[]>();
-                for (int i = 0; i < l1.Length; i++)
-                {
-                    
-                }
+                
                 break;
             case Direction.East:
                 break;
@@ -184,6 +180,38 @@ public class PathFinder : MonoBehaviour
                 throw new ArgumentOutOfRangeException();
         }
         return null;
+    }
+
+    public void FindEntrance(Node[] l1, Node[] l2)
+    {
+        bool onStreak = false;
+        var entrances = new List<List<Node>>();
+        var entrance = new List<Node>();
+        for (int i = 0; i < l1.Length; i++)
+        {
+            if (l1[i].Walkable)
+            {
+                if (l2[i].Walkable)
+                {
+                    if (onStreak)
+                    {
+                        entrance.Add(l1[i]);
+                        entrance.Add(l2[i]);
+                    }
+                    else
+                    {
+                        onStreak = true;
+                        entrance = new List<Node> {l1[i], l2[i]};
+                    }
+                }
+                else
+                {
+                    onStreak = false;
+                    if (entrance.Count > 0) entrances.Add(entrance);
+                    entrance = new List<Node>();
+                }
+            }
+        }
     }
 
     private static Direction CheckDirection(Cluster c1, Cluster c2)
