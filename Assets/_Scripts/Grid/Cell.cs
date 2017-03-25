@@ -14,6 +14,7 @@ public class Cell : MonoBehaviour
     public Renderer Renderer { get; set; }
     public Text Label;
     public Cell[] Neighbors;
+    public Node Node;
 
     /// <summary>
     /// Initialize all undeclared attributes created above.
@@ -126,5 +127,16 @@ public class Cell : MonoBehaviour
     public void Hide()
     {
         Renderer.enabled = !Renderer.enabled;
+    }
+    /// <summary>
+    /// Instantiates a node for cell
+    /// </summary>
+    /// <param name="walkable"></param>
+    /// <param name="worldpos"></param>
+    /// <param name="gridX"></param>
+    /// <param name="gridY"></param>
+    public void InstantiateNode(bool walkable, Vector3 worldpos, int gridX, int gridY)
+    {
+        Node = new Node(walkable, worldpos, gridX, gridY);
     }
 }

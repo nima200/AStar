@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 // ReSharper disable FieldCanBeMadeReadOnly.Local
 
 [System.Serializable]
@@ -46,6 +47,11 @@ public struct Coordinates
             iZ = -iX - iY;
         }
         return new Coordinates(iX, iZ);
+    }
+
+    public bool Equals(Coordinates other)
+    {
+        return other.X == X && other.Z == Z;
     }
 
     public override string ToString()

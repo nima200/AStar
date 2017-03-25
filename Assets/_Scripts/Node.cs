@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 
+[System.Serializable]
 public class Node {
     public bool Walkable;
     public Vector3 WorldPosition;
