@@ -57,7 +57,7 @@ public class Grid : MonoBehaviour
     }
 
     [UsedImplicitly]
-    private void OnDrawGizmos()
+    /*private void OnDrawGizmos()
     {
         Gizmos.DrawWireCube(transform.position, new Vector3(GridWorldSize.x, 1, GridWorldSize.y));
         if (Nodes == null) return;
@@ -74,7 +74,7 @@ public class Grid : MonoBehaviour
             Gizmos.DrawCube(node.WorldPosition, Vector3.one * (_nodeDiameter - 0.1f));
             
         }
-    }
+    }*/
 
     public List<Node> GetNeighbors(Node node)
     {

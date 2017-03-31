@@ -11,6 +11,7 @@ public class HexGrid : MonoBehaviour
     public Text CellLabelPrefab;
     public Cell CellPrefab;
     public Cell[,] Cells { get; private set; }
+    public List<Node> Path;
     public LayerMask UnwalkableMask;
     private void Awake()
     {
@@ -117,7 +118,7 @@ public class HexGrid : MonoBehaviour
     /// <returns>The neighbors of the cell</returns>
     public List<Cell> GetNeighbors(Cell cell)
     {
-        return cell.Neighbors.ToList();
+        return cell.Neighbors.Where(neighbor => neighbor != null).ToList();
     }
 
     private void OnDrawGizmos()
@@ -126,6 +127,9 @@ public class HexGrid : MonoBehaviour
         foreach (var cell in Cells)
         {
             Gizmos.color = cell.Node.Walkable ? Color.white : Color.red;
+            if (Path != null)
+                if (Path.Contains(cell.Node))
+                    Gizmos.color = Color.black;
             Gizmos.DrawMesh(cell.GetComponent<MeshFilter>().mesh, cell.transform.position);
         }
     }
