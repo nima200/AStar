@@ -8,8 +8,6 @@ public class AStar : MonoBehaviour
 {
     private HexGrid _grid;
     public Transform Source, Target;
-    public Coordinates PlayerCoordinates;
-    public List<Cell> PlayerNeighbors;
 
     private void Awake()
     {
@@ -22,8 +20,6 @@ public class AStar : MonoBehaviour
         {
             PathFind(Source.position, Target.position);
         }
-        PlayerCoordinates = _grid.CellFromWorld(Source.position).Coordinates;
-        PlayerNeighbors = _grid.CellFromWorld(Source.position).Neighbors.ToList();
     }
 
     private void PathFind(Vector3 startPosition, Vector3 endPosition)

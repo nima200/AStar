@@ -2,8 +2,8 @@
 
 [System.Serializable]
 public class Node {
-    public bool Walkable;
-    public Vector3 WorldPosition;
+    public bool Walkable; // Flag to mark the node as obstacle or not, for A*.
+    public Vector3 WorldPosition; // Node's world position
     public int GCost; // Distance from start node
     public int HCost; // Distance from destination node
     public int GridX; // For a node to keep track of where it is
