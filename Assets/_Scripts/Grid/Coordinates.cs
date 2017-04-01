@@ -2,7 +2,7 @@
 using UnityEngine;
 // ReSharper disable FieldCanBeMadeReadOnly.Local
 
-[System.Serializable]
+[Serializable]
 public struct Coordinates
 {
     [SerializeField]
@@ -25,11 +25,11 @@ public struct Coordinates
         return new Coordinates(x - (z / 2), z);
     }
 
-    public static Coordinates FromPosition(Vector3 position)
+    public static Coordinates FromPosition(Vector3 position, HexGrid grid)
     {
-        float x = position.x / (Metrics.InnerRadius * 2f);
+        float x = position.x / (grid.InnerRadius * 2f);
         float y = -x;
-        float offset = position.z / (Metrics.OuterRadius * 3f);
+        float offset = position.z / (grid.OuterRadius * 3f);
         x -= offset;
         y -= offset;
         int iX = Mathf.RoundToInt(x);

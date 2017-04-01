@@ -6,16 +6,24 @@ using System.Linq;
 
 public class HexGrid : MonoBehaviour
 {
+    public bool DrawHeatMap;
+    public bool DrawPath;
     public Vector2 Dimensions;
     public Canvas GridCanvas;
     public Text CellLabelPrefab;
-    public Cell CellPrefab;
-    public Cell[,] Cells { get; private set; }
-    public List<Node> Path;
+    public Hexagon HexagonPrefab;
+    public Hexagon[,] Hexagons { get; private set; }
+    public List<Hexagon> Path;
     public LayerMask UnwalkableMask;
+    public float InnerRadius { get; private set; }
+    public float OuterRadius { get; private set; }
+    
+
     private void Awake()
     {
-        Cells = new Cell[(int) Dimensions.x,(int) Dimensions.y];
+        OuterRadius = HexagonPrefab.Size;
+        InnerRadius = Mathf.Sqrt(3) / 2 * OuterRadius;
+        Hexagons = new Hexagon[(int) Dimensions.x,(int) Dimensions.y];
 
         for (int y = 0; y < Dimensions.y; y++)
         {
@@ -24,86 +32,87 @@ public class HexGrid : MonoBehaviour
                 CreateCells(x, y);
             }
         }
-        Triangulate(Cells);
+        Triangulate(Hexagons);
     }
 
     private void CreateCells(int x, int z)
     {
         // Resolve coordinates
-        float xCoordinate = (x + z * 0.5f - z / 2) * (Metrics.InnerRadius * 2f);
+        float xCoordinate = (x + z * 0.5f - z / 2) * (InnerRadius * 2f);
         const float yCoordinate = 0f;
-        float zCoordinate = z * (Metrics.OuterRadius * 1.5f);
+        float zCoordinate = z * (OuterRadius * 1.5f);
 
         // Translate coordinate into world position, instantiate the prefab at that location
         var position = new Vector3(xCoordinate, yCoordinate, zCoordinate);
-        var cell = Cells[x, z] = Instantiate(CellPrefab);
-        cell.transform.SetParent(transform, false);
-        cell.transform.position = position;
-        cell.Coordinates = Coordinates.FromOffsetCoordinates(x, z);
+        var hex = Hexagons[x, z] = Instantiate(HexagonPrefab);
+        hex.transform.SetParent(transform, false);
+        hex.transform.position = position;
+        hex.Coordinates = Coordinates.FromOffsetCoordinates(x, z);
+        hex.name = hex.Coordinates.ToString();
+        // Instantiate a node for the hexagon
+        hex.Walkable = !(Physics.CheckSphere(hex.transform.position, InnerRadius, UnwalkableMask));
 
-        // Instantiate a node for the cell
-        var worldPoint = cell.transform.position;
-        bool walkable = !(Physics.CheckSphere(worldPoint, Metrics.InnerRadius, UnwalkableMask));
-        cell.InstantiateNode(walkable, worldPoint, x, z);
-
-        // Set neighbors of the cell
+        // Set neighbors of the hexagon
         if (x > 0)
         {
-            cell.SetNeigbor(CellDirection.W, Cells[x - 1, z]);
+            hex.SetNeigbor(CellDirection.W, Hexagons[x - 1, z]);
         }
         if (z > 0)
         {
             // EVEN ROWS
             if ((z & 1) == 0)
             {
-                cell.SetNeigbor(CellDirection.SE, Cells[x, z - 1]);
+                hex.SetNeigbor(CellDirection.SE, Hexagons[x, z - 1]);
                 if (x > 0)
                 {
-                    cell.SetNeigbor(CellDirection.SW, Cells[x - 1, z - 1]);
+                    hex.SetNeigbor(CellDirection.SW, Hexagons[x - 1, z - 1]);
                 }
             }
             // ODD ROWS
             else
             {
-                cell.SetNeigbor(CellDirection.SW, Cells[x, z - 1]);
+                hex.SetNeigbor(CellDirection.SW, Hexagons[x, z - 1]);
                 if (x < Dimensions.x - 1)
                 {
-                    cell.SetNeigbor(CellDirection.SE, Cells[x + 1, z - 1]);
+                    hex.SetNeigbor(CellDirection.SE, Hexagons[x + 1, z - 1]);
                 }
             }
         }
-        // Display cell coordinates on top of it
-        var label = cell.Label = Instantiate(CellLabelPrefab);
+        // Display hexagon coordinates on top of it
+        var label = hex.Label = Instantiate(CellLabelPrefab);
         label.rectTransform.SetParent(GridCanvas.transform, false);
         label.rectTransform.anchoredPosition = new Vector2(position.x, position.z);
-        label.text = cell.Coordinates.ToStringOnSeparateLines();
+        label.text = hex.Coordinates.ToStringOnSeparateLines();
     }
 
     /// <summary>
-    /// Cell from a given world position.
-    /// If the cell is not found, throws an argument out of bounds
+    /// Hexagon from a given world position.
+    /// If the hexagon is not found, throws an argument out of bounds
     /// </summary>
-    /// <param name="position">The world position to find a cell</param>
-    /// <returns>The cell at the given world position</returns>
-    public Cell CellFromWorld(Vector3 position)
+    /// <param name="position">The world position to find a hexagon</param>
+    /// <returns>The hexagon at the given world position</returns>
+    public Hexagon HexFromPoint(Vector3 position)
     {
-        var coordinates = Coordinates.FromPosition(position);
-        for (int x = 0; x < Cells.GetLength(0); x++)
+        var coordinates = Coordinates.FromPosition(position, this);
+        for (int x = 0; x < Hexagons.GetLength(0); x++)
         {
-            for (int y = 0; y < Cells.GetLength(1); y++)
+            for (int y = 0; y < Hexagons.GetLength(1); y++)
             {
-                if (Cells[x, y].Coordinates.Equals(coordinates))
+                if (Hexagons[x, y].Coordinates.Equals(coordinates))
                 {
-                    return Cells[x, y];
+                    return Hexagons[x, y];
                 }
             }
         }
-        throw new ArgumentOutOfRangeException("The cell asked for does not exist");
+        throw new ArgumentOutOfRangeException("There is no hexagon at world position " + position);
     }
-
-    private static void Triangulate(Cell[,] cells)
+    /// <summary>
+    /// Given a 2D array of hexagons, iteratively triangulates the individual hexagons in the array.
+    /// </summary>
+    /// <param name="hexagons">2D array of hexagons.</param>
+    private static void Triangulate(Hexagon[,] hexagons)
     {
-        foreach (var cell in cells)
+        foreach (var cell in hexagons)
         {
             if (cell != null)
             {
@@ -112,25 +121,52 @@ public class HexGrid : MonoBehaviour
         }
     }
     /// <summary>
-    /// Returns a list of the neighbors of the cell requestsed
+    /// Returns a list of the neighbors of the hexagon requestsed
     /// </summary>
-    /// <param name="cell">The cell to find neighbors of</param>
-    /// <returns>The neighbors of the cell</returns>
-    public List<Cell> GetNeighbors(Cell cell)
+    /// <param name="hexagon">The hexagon to find neighbors of</param>
+    /// <returns>The neighbors of the hexagon</returns>
+    public List<Hexagon> GetNeighbors(Hexagon hexagon)
     {
-        return cell.Neighbors.Where(neighbor => neighbor != null).ToList();
+        return hexagon.Neighbors;
     }
 
     private void OnDrawGizmos()
     {
-        if (Cells == null) return;
-        foreach (var cell in Cells)
+        if (!DrawHeatMap) return;
+        if (Hexagons == null) return;
+        var fCosts = (from Hexagon hexagon in Hexagons select hexagon.FCost).ToList();
+        float maxFCost = fCosts.Max(t => t);
+        float minFCost = fCosts.Min(t => t);
+        float q1 = (maxFCost - minFCost) / 4;
+        float q2 = q1 * 2;
+        float q3 = q1 * 3;
+        float q4 = q1 * 4;
+        foreach (var cell in Hexagons)
         {
-            Gizmos.color = cell.Node.Walkable ? Color.white : Color.red;
-            if (Path != null)
-                if (Path.Contains(cell.Node))
+            float value = cell.FCost / (maxFCost - minFCost);
+            if (cell.FCost > minFCost && cell.FCost < q1)
+            {
+                Gizmos.color = Color.Lerp(Color.blue, Color.cyan, value);
+            } else if (cell.FCost >= q1 && cell.FCost < q2)
+            {
+                Gizmos.color = Color.Lerp(Color.cyan, Color.green, value);
+            } else if (cell.FCost >= q2 && cell.FCost < q3)
+            {
+                Gizmos.color = Color.Lerp(Color.green, Color.yellow, value);
+            } else if (cell.FCost >= q3 && cell.FCost < q4)
+            {
+                Gizmos.color = Color.Lerp(Color.yellow, Color.red, value);
+            }
+            else
+            {
+                Gizmos.color = new Color(0.3f, 0.3f, 0.3f);
+            }
+            if (Path != null && DrawPath)
+                if (Path.Contains(cell))
                     Gizmos.color = Color.black;
             Gizmos.DrawMesh(cell.GetComponent<MeshFilter>().mesh, cell.transform.position);
         }
     }
+
+
 }

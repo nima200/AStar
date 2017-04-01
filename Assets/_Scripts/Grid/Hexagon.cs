@@ -1,20 +1,34 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-public class Cell : MonoBehaviour
+public class Hexagon : MonoBehaviour
 {
+    // PUBLIC
+    public float Size;
+    public bool Walkable;
+    public int GCost;
+    public int HCost;
+    public Coordinates Coordinates;
+    public Text Label;
+    // PRIVATE
     private Mesh _cellMesh;
     private List<Vector3> _vertices;
     private List<int> _triangles;
     private List<Vector2> _uvs;
-    public Coordinates Coordinates;
-    public Renderer Renderer { get; set; }
-    public Text Label;
-    public Cell[] Neighbors;
-    public Node Node;
+    private Hexagon[] _neighbors;
+    // PROPERTY
+    public int FCost { get { return GCost + HCost; } }
+    public Renderer Renderer { get; private set; }
+    public Hexagon Parent { get; set; }
+    public List<Hexagon> Neighbors
+    {
+        get { return _neighbors.Where(neighbor => neighbor != null).ToList(); }
+    }
 
     /// <summary>
     /// Initialize all undeclared attributes created above.
@@ -22,12 +36,12 @@ public class Cell : MonoBehaviour
     private void Awake()
     {
         GetComponent<MeshFilter>().mesh = _cellMesh = new Mesh();
-        _cellMesh.name = "Cell Mesh";
+        _cellMesh.name = "Hexagon Mesh";
         _vertices = new List<Vector3>();
         _triangles = new List<int>();
         _uvs = new List<Vector2>();
         Renderer = GetComponent<Renderer>();
-        Neighbors = new Cell[6];
+        _neighbors = new Hexagon[6];
         gameObject.AddComponent<MeshCollider>();
         GetComponent<MeshCollider>().sharedMesh = _cellMesh;
     }
@@ -42,12 +56,12 @@ public class Cell : MonoBehaviour
         _vertices.Clear();
         _uvs.Clear();
         _triangles.Clear();
-        /* Center vertex of each cell aligned to the center of the game object in the scene. */
+        /* Center vertex of each hexagon aligned to the center of the game object in the scene. */
         var center = gameObject.transform.parent.localPosition;
         /* For each corner: */
         for (int i = 0; i < 6; i++)
         {
-            AddTriangle(center, center + Metrics.Corners[i], Metrics.Corners[(i + 1) % 6]);
+            AddTriangle(HexCorner(center, Size, i + 1), HexCorner(center, Size, i), center);
             _cellMesh.vertices = _vertices.ToArray();
             _cellMesh.triangles = _triangles.ToArray();
             _cellMesh.uv = _uvs.ToArray();
@@ -81,62 +95,58 @@ public class Cell : MonoBehaviour
     /// </summary>
     /// <param name="direction">The direction : CellDirection units.</param>
     /// <returns>Neighbor at given direction.</returns>
-    public Cell GetNeighbor(CellDirection direction)
+    public Hexagon GetNeighbor(CellDirection direction)
     {
-        return Neighbors[(int) direction];
+        return _neighbors[(int) direction];
     }
     /// <summary>
     /// Returns the neighbor at a given direction.
     /// </summary>
     /// <param name="direction">The direction : integer units.</param>
     /// <returns>Neighbor at given direction.</returns>
-    public Cell GetNeighbor(int direction)
+    public Hexagon GetNeighbor(int direction)
     {
-        return Neighbors[direction];
+        return _neighbors[direction];
     }
     /// <summary>
     /// Returns the neighbor at an oposite direction of what was provided.
     /// </summary>
     /// <param name="direction">The direction : CellDirection units.</param>
     /// <returns>The neighbor at opposite direction.</returns>
-    public Cell GetNeighbor_Opposite(CellDirection direction)
+    public Hexagon GetNeighbor_Opposite(CellDirection direction)
     {
-        return (int) direction < 3 ? Neighbors[(int) direction + 3] : Neighbors[(int) direction - 3];
+        return (int) direction < 3 ? _neighbors[(int) direction + 3] : _neighbors[(int) direction - 3];
     }
     /// <summary>
     /// Returns the neighbor at an oposite direction of what was provided.
     /// </summary>
     /// <param name="direction">The direction : integer units.</param>
     /// <returns>The neighbor at opposite direction.</returns>
-    public Cell GetNeighbor_Opposite(int direction)
+    public Hexagon GetNeighbor_Opposite(int direction)
     {
-        return direction < 3 ? Neighbors[direction + 3] : Neighbors[direction - 3];
+        return direction < 3 ? _neighbors[direction + 3] : _neighbors[direction - 3];
     }
     /// <summary>
     /// Setter for neighbors. It automatically finds the opposite direction.
     /// I.e. if A is at east of B, then B is at west of A.
     /// </summary>
-    /// <param name="cellDirection">The direction of the neighboring cell in terms of this cell.</param>
-    /// <param name="cell">The neighboring cell.</param>
-    public void SetNeigbor(CellDirection cellDirection, Cell cell)
+    /// <param name="cellDirection">The direction of the neighboring hexagon in terms of this hexagon.</param>
+    /// <param name="hexagon">The neighboring hexagon.</param>
+    public void SetNeigbor(CellDirection cellDirection, Hexagon hexagon)
     {
-        Neighbors[(int) cellDirection] = cell;
-        cell.Neighbors[(int) cellDirection.Opposite()] = this;
+        _neighbors[(int) cellDirection] = hexagon;
+        hexagon._neighbors[(int) cellDirection.Opposite()] = this;
     }
 
     public void Hide()
     {
         Renderer.enabled = !Renderer.enabled;
     }
-    /// <summary>
-    /// Instantiates a node for cell
-    /// </summary>
-    /// <param name="walkable"></param>
-    /// <param name="worldpos"></param>
-    /// <param name="gridX"></param>
-    /// <param name="gridY"></param>
-    public void InstantiateNode(bool walkable, Vector3 worldpos, int gridX, int gridY)
+
+    private static Vector3 HexCorner(Vector3 center, float size, int i)
     {
-        Node = new Node(walkable, worldpos, gridX, gridY);
+        float angleDeg = 60f * i + 30f;
+        float angleRad = Mathf.PI / 180f * angleDeg;
+        return new Vector3(center.x + size * Mathf.Cos(angleRad), 0, center.z + size * Mathf.Sin(angleRad));
     }
 }

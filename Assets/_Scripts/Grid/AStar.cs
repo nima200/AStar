@@ -19,72 +19,78 @@ public class AStar : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.F1))
         {
             PathFind(Source.position, Target.position);
+            foreach (var hexagon in _grid.Hexagons)
+            {
+                hexagon.Label.text = hexagon.FCost.ToString();
+            }
         }
     }
 
     private void PathFind(Vector3 startPosition, Vector3 endPosition)
     {
-        var startNode = _grid.CellFromWorld(startPosition).Node;
-        var endNode = _grid.CellFromWorld(endPosition).Node;
+        var startHex = _grid.HexFromPoint(startPosition);
+        var endHex = _grid.HexFromPoint(endPosition);
 
-        var openSet = new List<Node>();
-        var closedSet = new HashSet<Node>();
+        var openSet = new List<Hexagon>();
+        var closedSet = new HashSet<Hexagon>();
 
-        openSet.Add(startNode);
+        openSet.Add(startHex);
 
         while (openSet.Count > 0)
         {
-            var currentNode = openSet[0];
+            var currentHex = openSet[0];
             for (int i = 1; i < openSet.Count; i++)
             {
-                if (openSet[i].FCost >= currentNode.FCost && openSet[i].FCost == currentNode.FCost) continue;
-                if (openSet[i].HCost < currentNode.HCost)
+                if (openSet[i].FCost >= currentHex.FCost && openSet[i].FCost == currentHex.FCost) continue;
+                if (openSet[i].HCost < currentHex.HCost)
                 {
-                    currentNode = openSet[i];
+                    currentHex = openSet[i];
                 }
             }
-            openSet.Remove(currentNode);
-            closedSet.Add(currentNode);
+            openSet.Remove(currentHex);
+            closedSet.Add(currentHex);
 
-            if (currentNode == endNode)
+            if (currentHex == endHex)
             {
-                RetracePath(startNode, endNode);
+                RetracePath(startHex, endHex);
                 return;
             }
-            var currentCell = _grid.CellFromWorld(currentNode.WorldPosition);
+            var currentCell = _grid.HexFromPoint(currentHex.transform.position);
             foreach (var neighbor in _grid.GetNeighbors(currentCell))
             {
-                if (!neighbor.Node.Walkable || closedSet.Contains(neighbor.Node)) continue;
-                int newCostToNeighbor = currentNode.GCost + GetDistance(currentNode, neighbor.Node);
-                if (newCostToNeighbor >= neighbor.Node.GCost && openSet.Contains(neighbor.Node)) continue;
-                neighbor.Node.GCost = newCostToNeighbor;
-                neighbor.Node.HCost = GetDistance(neighbor.Node, endNode);
-                neighbor.Node.Parent = currentNode;
-                if (!openSet.Contains(neighbor.Node))
-                    openSet.Add(neighbor.Node);
+                if (!neighbor.Walkable || closedSet.Contains(neighbor)) continue;
+                int newCostToNeighbor = currentHex.GCost + GetDistance(currentHex, neighbor);
+                if (newCostToNeighbor >= neighbor.GCost && openSet.Contains(neighbor)) continue;
+
+                neighbor.GCost = newCostToNeighbor;
+                neighbor.HCost = GetDistance(neighbor, endHex);
+                neighbor.Parent = currentHex;
+                if (!openSet.Contains(neighbor))
+                    openSet.Add(neighbor);
             }
         }
     }
 
-    private void RetracePath(Node start, Node end)
+    private void RetracePath(Object start, Hexagon end)
     {
-        var path = new List<Node>();
+        var path = new List<Hexagon>();
         var currentNode = end;
-        while (currentNode != start)
+        do
         {
             path.Add(currentNode);
             currentNode = currentNode.Parent;
-        }
+        } while (currentNode != start);
         path.Reverse();
         _grid.Path = path;
     }
 
-    private static int GetDistance(Node a, Node b)
+    private static int GetDistance(Hexagon a, Hexagon b)
     {
-        int distanceX = Mathf.Abs(a.GridX - b.GridY);
-        int distanceY = Mathf.Abs(a.GridY - b.GridY);
-        return distanceX > distanceY
-            ? 10 * distanceY + 10 * (distanceX - distanceY)
-            : 10 * distanceX + 10 * (distanceY - distanceX);
+//        return Mathf.Abs(a.Coordinates.X - b.Coordinates.X) +
+//               Mathf.Abs(a.Coordinates.Y - b.Coordinates.Y + 
+//               Mathf.Abs(a.Coordinates.Z - b.Coordinates.Z)) / 2;
+
+        return Mathf.Max(Mathf.Abs(a.Coordinates.X - b.Coordinates.X),
+            Mathf.Abs(a.Coordinates.Y - b.Coordinates.Y), Mathf.Abs(a.Coordinates.Z - b.Coordinates.Z));
     }
 }
