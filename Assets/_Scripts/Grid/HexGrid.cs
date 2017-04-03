@@ -155,7 +155,7 @@ public class HexGrid : MonoBehaviour
             } else if (cell.FCost >= q2 && cell.FCost < q3)
             {
                 Gizmos.color = Color.Lerp(Color.green, Color.yellow, value);
-            } else if (cell.FCost >= q3 && cell.FCost < q4)
+            } else if (cell.FCost >= q3 && cell.FCost <= q4)
             {
                 Gizmos.color = Color.Lerp(Color.yellow, Color.red, value);
             }
