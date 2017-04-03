@@ -135,16 +135,18 @@ public class HexGrid : MonoBehaviour
         if (!DrawHeatMap) return;
         if (Hexagons == null) return;
         var fCosts = (from Hexagon hexagon in Hexagons select hexagon.FCost).ToList();
+        fCosts.RemoveAll(value => value == 0);
         float maxFCost = fCosts.Max(t => t);
         float minFCost = fCosts.Min(t => t);
-        float q1 = (maxFCost - minFCost) / 4;
-        float q2 = q1 * 2;
-        float q3 = q1 * 3;
-        float q4 = q1 * 4;
+        float q = (maxFCost - minFCost) / 4;
+        float q1 = minFCost + q;
+        float q2 = minFCost + 2 * q;
+        float q3 = minFCost + 3 * q;
+        float q4 = minFCost + 4 * q;
         foreach (var cell in Hexagons)
         {
             float value = cell.FCost / (maxFCost - minFCost);
-            if (cell.FCost > minFCost && cell.FCost < q1)
+            if (cell.FCost >= minFCost && cell.FCost < q1)
             {
                 Gizmos.color = Color.Lerp(Color.blue, Color.cyan, value);
             } else if (cell.FCost >= q1 && cell.FCost < q2)
