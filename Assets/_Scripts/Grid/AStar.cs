@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,26 +9,24 @@ public class AStar : MonoBehaviour
 {
     private HexGrid _grid;
     public Transform Source, Target;
+    private PathRequestManager _requestManager;
 
     private void Awake()
     {
+        _requestManager = GetComponent<PathRequestManager>();
         _grid = GetComponent<HexGrid>();
     }
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.F1))
-        {
-            PathFind(Source.position, Target.position);
-            foreach (var hexagon in _grid.Hexagons)
-            {
-                hexagon.Label.text = hexagon.FCost.ToString();
-            }
-        }
     }
 
-    private void PathFind(Vector3 startPosition, Vector3 endPosition)
+    private IEnumerator PathFind(Vector3 startPosition, Vector3 endPosition)
     {
+
+        var waypoints = new Vector3[0];
+        bool foundPath = false;
+
         var startHex = _grid.HexFromPoint(startPosition);
         var endHex = _grid.HexFromPoint(endPosition);
 
@@ -52,8 +51,8 @@ public class AStar : MonoBehaviour
 
             if (currentHex == endHex)
             {
-                RetracePath(startHex, endHex);
-                return;
+                foundPath = true;
+                break;
             }
             var currentCell = _grid.HexFromPoint(currentHex.transform.position);
             foreach (var neighbor in _grid.GetNeighbors(currentCell))
@@ -69,9 +68,15 @@ public class AStar : MonoBehaviour
                     openSet.Add(neighbor);
             }
         }
+        yield return null;
+        if (foundPath)
+        {
+            waypoints = RetracePath(startHex, endHex);
+        }
+        _requestManager.FinishedProcessingPath(waypoints, foundPath);
     }
 
-    private void RetracePath(Object start, Hexagon end)
+    private static Vector3[] RetracePath(Hexagon start, Hexagon end)
     {
         var path = new List<Hexagon>();
         var currentNode = end;
@@ -80,17 +85,24 @@ public class AStar : MonoBehaviour
             path.Add(currentNode);
             currentNode = currentNode.Parent;
         } while (currentNode != start);
-        path.Reverse();
-        _grid.Path = path;
+        var waypoints = HexToVec3(path);
+        Array.Reverse(waypoints);
+        return waypoints;
+    }
+
+    private static Vector3[] HexToVec3(IEnumerable<Hexagon> path)
+    {
+        return path.Select(hex => hex.transform.position).ToArray();
     }
 
     private static int GetDistance(Hexagon a, Hexagon b)
     {
-//        return Mathf.Abs(a.Coordinates.X - b.Coordinates.X) +
-//               Mathf.Abs(a.Coordinates.Y - b.Coordinates.Y + 
-//               Mathf.Abs(a.Coordinates.Z - b.Coordinates.Z)) / 2;
-
         return Mathf.Max(Mathf.Abs(a.Coordinates.X - b.Coordinates.X),
             Mathf.Abs(a.Coordinates.Y - b.Coordinates.Y), Mathf.Abs(a.Coordinates.Z - b.Coordinates.Z));
+    }
+
+    public void StartFindPath(Vector3 pathStart, Vector3 pathEnd)
+    {
+        StartCoroutine(PathFind(pathStart, pathEnd));
     }
 }
