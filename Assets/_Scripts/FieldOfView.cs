@@ -1,6 +1,8 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 public class FieldOfView : MonoBehaviour {
 
@@ -8,8 +10,15 @@ public class FieldOfView : MonoBehaviour {
 	[Range(0,360)]
 	public float viewAngle;
 
+    public Transform Bank;
+    public Agent Cop;
+    public Path RobberPath;
+    public List<Path> PossiblePaths = new List<Path>();
+    public Dictionary<Path, Pair<int, int>> PathMap = new Dictionary<Path, Pair<int, int>>();
+    private int _robberWaypointIndex;
 	public LayerMask targetMask;
 	public LayerMask obstacleMask;
+    private bool FoundCutOff;
 
 
 	public List<Transform> visibleTargets = new List<Transform>();
@@ -52,10 +61,48 @@ public class FieldOfView : MonoBehaviour {
 				float dstToTarget = Vector3.Distance (transform.position, target.position);
 				if (!Physics.Raycast (transform.position, dirToTarget, dstToTarget, obstacleMask)) {
 					visibleTargets.Add (target);
+                    PathRequestManager.RequestPath(target.position, Bank.position, OnPathFound);
 				}
 			}
 		}
 	}
+
+    private void OnPathFound(Path path, bool success)
+    {
+        RobberPath = path;
+
+        for (int i = RobberPath.Waypoints.Length - 1; i >= RobberPath.Waypoints.Length - 21; i--)
+        {
+            _robberWaypointIndex = i;
+            var waypoint = RobberPath.Waypoints[i];
+            PathRequestManager.RequestPath(Cop.transform.position, waypoint, CalculateTime);
+        }
+    }
+
+    private void FindCutoff()
+    {
+        if (FoundCutOff) return;
+        try
+        {
+            FoundCutOff = true;
+            var path = PathMap.First(p => p.Value.A < p.Value.B);
+            Cop.StartPath(path.Key);
+            PathRequestManager.ClearPathRequests();
+        }
+        catch (InvalidOperationException)
+        {
+            FoundCutOff = false;
+            print("Cannot find a cut off path from cop to robber");
+        }
+    }
+
+    private void CalculateTime(Path path, bool success)
+    {
+        int copTime = path.Waypoints.Length;
+        int robberTime = _robberWaypointIndex;
+        PathMap.Add(path, new Pair<int, int>(copTime, robberTime));
+        FindCutoff();
+    }
 
 	void DrawFieldOfView() {
 		int stepCount = Mathf.RoundToInt(viewAngle * meshResolution);

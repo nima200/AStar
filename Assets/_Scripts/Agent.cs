@@ -6,12 +6,12 @@ using UnityEngine.UI;
 public class Agent : MonoBehaviour
 {
 
-    public Vector3[] Path;
+    public Path Path;
     public Transform Target;
     public float Speed = 5;
     private int _targetIndex;
 
-    public void OnPathFound(Vector3[] newPath, bool pathFound)
+    public void OnPathFound(Path newPath, bool pathFound)
     {
         if (!pathFound)
         {
@@ -42,32 +42,39 @@ public class Agent : MonoBehaviour
 
     private IEnumerator FollowPath()
     {
-        if (Path.Length == 0) yield break;
-        var currentWayPoint = Path[0];
+        if (Path.Waypoints.Length == 0) yield break;
+        var currentWayPoint = Path.Waypoints[0];
         while (true)
         {
             if (transform.position == currentWayPoint)
             {
                 _targetIndex++;
-                if (_targetIndex >= Path.Length)
+                if (_targetIndex >= Path.Waypoints.Length)
                 {
                     yield break;
                 }
-                currentWayPoint = Path[_targetIndex];
+                currentWayPoint = Path.Waypoints[_targetIndex];
             }
-            transform.position = Vector3.MoveTowards(transform.position, currentWayPoint,
-                    Speed * Time.fixedDeltaTime);
-            yield return null;
+            /*transform.position = Vector3.MoveTowards(transform.position, currentWayPoint,
+                    Speed * Time.fixedDeltaTime);*/
+            transform.position = currentWayPoint;
+            yield return new WaitForSeconds(0.1f);
         }
+    }
+
+    public void StartPath(Path p)
+    {
+        Path = p;
+        StartCoroutine("FollowPath");
     }
 
     public void OnDrawGizmos()
     {
         if (Path == null) return;
-        for (int i = _targetIndex; i < Path.Length; i++)
+        for (int i = _targetIndex; i < Path.Waypoints.Length; i++)
         {
             Gizmos.color = Color.black;
-            Gizmos.DrawSphere(Path[i], 4);
+            Gizmos.DrawSphere(Path.Waypoints[i], 4);
         }
     }
 }
