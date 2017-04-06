@@ -11,12 +11,10 @@ public class AStar : MonoBehaviour
 {
     private HexGrid _grid;
     public Transform Source, Target;
-    private PathRequestManager _requestManager;
     public Optimization Optimization;
 
     private void Awake()
     {
-        _requestManager = GetComponent<PathRequestManager>();
         _grid = GetComponent<HexGrid>();
     }
 
@@ -25,7 +23,23 @@ public class AStar : MonoBehaviour
 
     }
 
-    private IEnumerator PathFind_LIST(Vector3 startPosition, Vector3 endPosition)
+    public void FindPath(PathRequest request, Action<PathResult> callback)
+    {
+        switch (Optimization)
+        {
+            case Optimization.List:
+                PathFind_LIST(request, callback);
+                break;
+            case Optimization.Heap:
+                PathFind_HEAP(request, callback);
+                break;
+            case Optimization.PriorityQueue:
+                PathFind_PRIORITYQUEUE(request, callback);
+                break;
+        }
+    }
+
+    public void PathFind_LIST(PathRequest request, Action<PathResult> callback)
     {
         
         var sw = new Stopwatch();
@@ -34,8 +48,8 @@ public class AStar : MonoBehaviour
 
         bool foundPath = false;
 
-        var startHex = _grid.HexFromPoint(startPosition);
-        var endHex = _grid.HexFromPoint(endPosition);
+        var startHex = _grid.HexFromPoint(request.PathStart);
+        var endHex = _grid.HexFromPoint(request.PathEnd);
 
         var openSet = new List<Hexagon>();
         var closedSet = new HashSet<Hexagon>();
@@ -77,15 +91,14 @@ public class AStar : MonoBehaviour
                     openSet.Add(neighbor);
             }
         }
-        yield return null;
         if (foundPath)
         {
             path = RetracePath(startHex, endHex);
         }
-        _requestManager.FinishedProcessingPath(path, foundPath);
+        callback(new PathResult(path, foundPath, request.Callback));
     }
 
-    private IEnumerator PathFind_HEAP(Vector3 startPosition, Vector3 endPosition)
+    public void PathFind_HEAP(PathRequest request, Action<PathResult> callback)
     {
         
         var sw = new Stopwatch();
@@ -94,8 +107,8 @@ public class AStar : MonoBehaviour
 
         bool foundPath = false;
 
-        var startHex = _grid.HexFromPoint(startPosition);
-        var endHex = _grid.HexFromPoint(endPosition);
+        var startHex = _grid.HexFromPoint(request.PathStart);
+        var endHex = _grid.HexFromPoint(request.PathEnd);
 
         var openSet = new Heap<Hexagon>(_grid.MaxHeapSize);
         var closedSet = new HashSet<Hexagon>();
@@ -130,14 +143,13 @@ public class AStar : MonoBehaviour
                     openSet.UpdateItem(neighbor);
             }
         }
-        yield return null;
         if (foundPath)
         {
             path = RetracePath(startHex, endHex);
         }
-        _requestManager.FinishedProcessingPath(path, foundPath);
+        callback(new PathResult(path, foundPath, request.Callback));
     }
-    private IEnumerator PathFind_PRIORITYQUEUE(Vector3 startPosition, Vector3 endPosition)
+    public void PathFind_PRIORITYQUEUE(PathRequest request, Action<PathResult> callback)
     {
 
         var sw = new Stopwatch();
@@ -146,8 +158,8 @@ public class AStar : MonoBehaviour
 
         bool foundPath = false;
 
-        var startHex = _grid.HexFromPoint(startPosition);
-        var endHex = _grid.HexFromPoint(endPosition);
+        var startHex = _grid.HexFromPoint(request.PathStart);
+        var endHex = _grid.HexFromPoint(request.PathEnd);
 
         var openSet = new SimplePriorityQueue<Hexagon, int>();
         var closedSet = new HashSet<Hexagon>();
@@ -184,12 +196,11 @@ public class AStar : MonoBehaviour
                 }
             }
         }
-        yield return null;
         if (foundPath)
         {
             path = RetracePath(startHex, endHex);
         }
-        _requestManager.FinishedProcessingPath(path, foundPath);
+        callback(new PathResult(path, foundPath, request.Callback));
     }
 
     private static Path RetracePath(Hexagon start, Hexagon end)
@@ -215,22 +226,5 @@ public class AStar : MonoBehaviour
     {
         return Mathf.Max(Mathf.Abs(a.Coordinates.X - b.Coordinates.X),
             Mathf.Abs(a.Coordinates.Y - b.Coordinates.Y), Mathf.Abs(a.Coordinates.Z - b.Coordinates.Z));
-    }
-
-    public void StartFindPath(Vector3 pathStart, Vector3 pathEnd)
-    {
-        switch (Optimization)
-        {
-            case Optimization.List:
-                StartCoroutine(PathFind_LIST(pathStart, pathEnd));
-                break;
-            case Optimization.Heap:
-                StartCoroutine(PathFind_HEAP(pathStart, pathEnd));
-                break;
-            case Optimization.PriorityQueue:
-                StartCoroutine(PathFind_PRIORITYQUEUE(pathStart, pathEnd));
-                break;
-        }
-        
     }
 }

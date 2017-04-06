@@ -38,7 +38,7 @@ public class Agent : MonoBehaviour
         Target = target;
         StopPath();
         ResetPath();
-        PathRequestManager.RequestPath(transform.position, Target.position, OnPathFound);
+        PathRequestManager.RequestPath(new PathRequest(transform.position, Target.position, OnPathFound));
     }
 
     private IEnumerator FollowPath()
