@@ -10,6 +10,7 @@ public class Agent : MonoBehaviour
     public Transform Target;
     public float Speed = 5;
     private int _targetIndex;
+    public Vector3 CurrentWaypoint;
 
     public void OnPathFound(Path newPath, bool pathFound)
     {
@@ -43,21 +44,21 @@ public class Agent : MonoBehaviour
     private IEnumerator FollowPath()
     {
         if (Path.Waypoints.Length == 0) yield break;
-        var currentWayPoint = Path.Waypoints[0];
+        CurrentWaypoint = Path.Waypoints[0];
         while (true)
         {
-            if (transform.position == currentWayPoint)
+            if (transform.position == CurrentWaypoint)
             {
                 _targetIndex++;
                 if (_targetIndex >= Path.Waypoints.Length)
                 {
                     yield break;
                 }
-                currentWayPoint = Path.Waypoints[_targetIndex];
+                CurrentWaypoint = Path.Waypoints[_targetIndex];
             }
             /*transform.position = Vector3.MoveTowards(transform.position, currentWayPoint,
                     Speed * Time.fixedDeltaTime);*/
-            transform.position = currentWayPoint;
+            transform.position = CurrentWaypoint;
             yield return new WaitForSeconds(0.1f);
         }
     }
