@@ -8,6 +8,7 @@ public class HexGrid : MonoBehaviour
 {
     public bool DrawHeatMap;
     public bool DrawPath;
+    public bool DrawRegions;
     public Vector2 Dimensions;
     public Canvas GridCanvas;
     public Text CellLabelPrefab;
@@ -17,13 +18,22 @@ public class HexGrid : MonoBehaviour
     public LayerMask UnwalkableMask;
     public float InnerRadius { get; private set; }
     public float OuterRadius { get; private set; }
-    
+    public LayerMask WalkableMask;
+    public RegionType[] Regions;
+    public Dictionary<int, int> RegionValueDictionary = new Dictionary<int, int>();
+
 
     private void Awake()
     {
         OuterRadius = HexagonPrefab.Size;
         InnerRadius = Mathf.Sqrt(3) / 2 * OuterRadius;
         Hexagons = new Hexagon[(int) Dimensions.x,(int) Dimensions.y];
+
+        foreach (var region in Regions)
+        {
+            WalkableMask.value |= region.RegionLayerMask.value;
+            RegionValueDictionary.Add((int) Mathf.Log(region.RegionLayerMask.value, 2), region.RegionValue);
+        }
 
         for (int y = 0; y < Dimensions.y; y++)
         {
@@ -51,7 +61,17 @@ public class HexGrid : MonoBehaviour
         hex.name = hex.Coordinates.ToString();
         // Instantiate a node for the hexagon
         hex.Walkable = !(Physics.CheckSphere(hex.transform.position, InnerRadius, UnwalkableMask));
-
+        int regionValue = 0;
+        if (hex.Walkable)
+        {
+            var ray = new Ray(hex.transform.position + Vector3.up * 50, Vector3.down);
+            RaycastHit hit;
+            if (Physics.Raycast(ray, out hit, 100, WalkableMask))
+            {
+                RegionValueDictionary.TryGetValue(hit.collider.gameObject.layer, out regionValue);
+            }
+        }
+        hex.RegionValue = regionValue;
         // Set neighbors of the hexagon
         if (x > 0)
         {
@@ -142,42 +162,75 @@ public class HexGrid : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        if (!DrawHeatMap) return;
         if (Hexagons == null) return;
-        var fCosts = (from Hexagon hexagon in Hexagons select hexagon.FCost).ToList();
-        fCosts.RemoveAll(value => value == 0);
-        float maxFCost = fCosts.Max(t => t);
-        float minFCost = fCosts.Min(t => t);
-        float q = (maxFCost - minFCost) / 4;
-        float q1 = minFCost + q;
-        float q2 = minFCost + 2 * q;
-        float q3 = minFCost + 3 * q;
-        float q4 = minFCost + 4 * q;
-        foreach (var cell in Hexagons)
+        if (DrawRegions)
         {
-            float value = cell.FCost / (maxFCost - minFCost);
-            if (cell.FCost >= minFCost && cell.FCost < q1)
+            DrawHeatMap = false;
+            DrawPath = false;
+            foreach (var hexagon in Hexagons)
             {
-                Gizmos.color = Color.Lerp(Color.blue, Color.cyan, value);
-            } else if (cell.FCost >= q1 && cell.FCost < q2)
-            {
-                Gizmos.color = Color.Lerp(Color.cyan, Color.green, value);
-            } else if (cell.FCost >= q2 && cell.FCost < q3)
-            {
-                Gizmos.color = Color.Lerp(Color.green, Color.yellow, value);
-            } else if (cell.FCost >= q3 && cell.FCost <= q4)
-            {
-                Gizmos.color = Color.Lerp(Color.yellow, Color.red, value);
+                if (hexagon.RegionValue == 0)
+                {
+                    Gizmos.color = Color.grey;
+                }
+                if (hexagon.RegionValue == 1)
+                {
+                    Gizmos.color = Color.green;
+                }
+                if (hexagon.RegionValue == 2)
+                {
+                    Gizmos.color = Color.blue;
+                }
+                if (hexagon.RegionValue == 3)
+                {
+                    Gizmos.color = Color.red;
+                }
+                Gizmos.DrawMesh(hexagon.GetComponent<MeshFilter>().mesh, hexagon.transform.position);
             }
-            else
-            {
-                Gizmos.color = new Color(0.3f, 0.3f, 0.3f);
-            }
-            if (Path != null && DrawPath)
-                if (Path.Contains(cell))
-                    Gizmos.color = Color.black;
-            Gizmos.DrawMesh(cell.GetComponent<MeshFilter>().mesh, cell.transform.position);
         }
+        if (DrawHeatMap)
+        {
+            DrawRegions = false;
+            var fCosts = (from Hexagon hexagon in Hexagons select hexagon.FCost).ToList();
+            fCosts.RemoveAll(value => value == 0);
+            float maxFCost = fCosts.Max(t => t);
+            float minFCost = fCosts.Min(t => t);
+            float q = (maxFCost - minFCost) / 4;
+            float q1 = minFCost + q;
+            float q2 = minFCost + 2 * q;
+            float q3 = minFCost + 3 * q;
+            float q4 = minFCost + 4 * q;
+            foreach (var cell in Hexagons)
+            {
+                float value = cell.FCost / (maxFCost - minFCost);
+                if (cell.FCost >= minFCost && cell.FCost < q1)
+                {
+                    Gizmos.color = Color.Lerp(Color.blue, Color.cyan, value);
+                }
+                else if (cell.FCost >= q1 && cell.FCost < q2)
+                {
+                    Gizmos.color = Color.Lerp(Color.cyan, Color.green, value);
+                }
+                else if (cell.FCost >= q2 && cell.FCost < q3)
+                {
+                    Gizmos.color = Color.Lerp(Color.green, Color.yellow, value);
+                }
+                else if (cell.FCost >= q3 && cell.FCost <= q4)
+                {
+                    Gizmos.color = Color.Lerp(Color.yellow, Color.red, value);
+                }
+                else
+                {
+                    Gizmos.color = new Color(0.3f, 0.3f, 0.3f);
+                }
+                if (Path != null && DrawPath)
+                    if (Path.Contains(cell))
+                        Gizmos.color = Color.black;
+            }
+        
+
+        }
+
     }
 
 
