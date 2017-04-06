@@ -17,6 +17,10 @@ public class HexGrid : MonoBehaviour
     public LayerMask UnwalkableMask;
     public float InnerRadius { get; private set; }
     public float OuterRadius { get; private set; }
+    public int MaxHeapSize
+    {
+        get { return (int) Dimensions.x * (int) Dimensions.y; }
+    }
     
 
     private void Awake()
