@@ -19,6 +19,7 @@ public class AStar : MonoBehaviour
 
     private void Update()
     {
+
     }
 
     private IEnumerator PathFind(Vector3 startPosition, Vector3 endPosition)

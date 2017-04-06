@@ -13,10 +13,10 @@ public class CameraFOV : MonoBehaviour {
 
     public Transform Bank;
     public Agent Cop;
+    public Agent Robber;
     public Path RobberPath;
     public List<Path> PossiblePaths = new List<Path>();
     public Dictionary<Path, Pair<int, int>> PathMap = new Dictionary<Path, Pair<int, int>>();
-    private int _robberWaypointIndex;
 	public LayerMask targetMask;
 	public LayerMask obstacleMask;
     private bool FoundCutOff;
@@ -72,10 +72,10 @@ public class CameraFOV : MonoBehaviour {
     {
         RobberPath = path;
 
-        for (int i = RobberPath.Waypoints.Length - 1; i >= RobberPath.Waypoints.Length - 21; i--)
+        var closetsToCop = path.Waypoints.OrderBy(p => Mathf.RoundToInt(Vector3.Distance(p, Cop.transform.position)));
+
+        foreach (var waypoint in closetsToCop)
         {
-            _robberWaypointIndex = i;
-            var waypoint = RobberPath.Waypoints[i];
             PathRequestManager.RequestPath(Cop.transform.position, waypoint, CalculateTime);
         }
     }
@@ -100,7 +100,7 @@ public class CameraFOV : MonoBehaviour {
     private void CalculateTime(Path path, bool success)
     {
         int copTime = path.Waypoints.Length;
-        int robberTime = _robberWaypointIndex;
+        int robberTime = Robber.Path.DistanceOf(Robber.CurrentWaypoint, path.Waypoints[path.Waypoints.Length - 1]);
         PathMap.Add(path, new Pair<int, int>(copTime, robberTime));
         FindCutoff();
     }
