@@ -2,11 +2,11 @@
 using System.Collections;
 using UnityEditor;
 
-[CustomEditor (typeof (FieldOfView))]
+[CustomEditor (typeof (CameraFOV))]
 public class FieldOfViewEditor : Editor {
 
 	void OnSceneGUI() {
-		FieldOfView fow = (FieldOfView)target;
+		CameraFOV fow = (CameraFOV)target;
 		Handles.color = Color.white;
 		Handles.DrawWireArc (fow.transform.position, Vector3.up, Vector3.forward, 360, fow.viewRadius);
 		Vector3 viewAngleA = fow.DirFromAngle (-fow.viewAngle / 2, false);

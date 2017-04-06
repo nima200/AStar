@@ -19,12 +19,13 @@ public class AStar : MonoBehaviour
 
     private void Update()
     {
+
     }
 
     private IEnumerator PathFind(Vector3 startPosition, Vector3 endPosition)
     {
+        var path = new Path();
 
-        var waypoints = new Vector3[0];
         bool foundPath = false;
 
         var startHex = _grid.HexFromPoint(startPosition);
@@ -71,12 +72,12 @@ public class AStar : MonoBehaviour
         yield return null;
         if (foundPath)
         {
-            waypoints = RetracePath(startHex, endHex);
+            path = RetracePath(startHex, endHex);
         }
-        _requestManager.FinishedProcessingPath(waypoints, foundPath);
+        _requestManager.FinishedProcessingPath(path, foundPath);
     }
 
-    private static Vector3[] RetracePath(Hexagon start, Hexagon end)
+    private static Path RetracePath(Hexagon start, Hexagon end)
     {
         var path = new List<Hexagon>();
         var currentNode = end;
@@ -87,7 +88,7 @@ public class AStar : MonoBehaviour
         } while (currentNode != start);
         var waypoints = HexToVec3(path);
         Array.Reverse(waypoints);
-        return waypoints;
+        return new Path(waypoints);
     }
 
     private static Vector3[] HexToVec3(IEnumerable<Hexagon> path)

@@ -17,11 +17,16 @@ public class PathRequestManager : MonoBehaviour {
         _pathFinder = GetComponent<AStar>();
     }
 
-    public static void RequestPath(Vector3 pathStart, Vector3 pathEnd, Action<Vector3[], bool> callBack)
+    public static void RequestPath(Vector3 pathStart, Vector3 pathEnd, Action<Path, bool> callBack)
     {
         var newRequest = new PathRequest(pathStart, pathEnd, callBack);   
         _instance._pathRequests.Enqueue(newRequest);
         _instance.TryProcessNext();
+    }
+
+    public static void ClearPathRequests()
+    {
+        _instance._pathRequests.Clear();
     }
 
     private void TryProcessNext()
@@ -32,7 +37,7 @@ public class PathRequestManager : MonoBehaviour {
         _pathFinder.StartFindPath(_currentPathRequest.PathStart, _currentPathRequest.PathEnd);
     }
 
-    public void FinishedProcessingPath(Vector3[] path, bool success)
+    public void FinishedProcessingPath(Path path, bool success)
     {
         _currentPathRequest.Callback(path, success);
         _isProcessingPath = false;
