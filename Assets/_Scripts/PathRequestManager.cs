@@ -1,15 +1,13 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Threading;
 
 public class PathRequestManager : MonoBehaviour {
 
-    private readonly Queue<PathRequest> _pathRequests = new Queue<PathRequest>();
-    private PathRequest _currentPathRequest;
     private static PathRequestManager _instance;
     private AStar _pathFinder;
-    private bool _isProcessingPath;
+    private readonly Queue<PathResult> _results = new Queue<PathResult>();
 
     private void Awake()
     {
@@ -17,30 +15,34 @@ public class PathRequestManager : MonoBehaviour {
         _pathFinder = GetComponent<AStar>();
     }
 
-    public static void RequestPath(Vector3 pathStart, Vector3 pathEnd, Action<Path, bool> callBack)
+    private void Update()
     {
-        var newRequest = new PathRequest(pathStart, pathEnd, callBack);   
-        _instance._pathRequests.Enqueue(newRequest);
-        _instance.TryProcessNext();
+        if (_results.Count <= 0) return;
+        int itemsInQueue = _results.Count;
+        lock (_results)
+        {
+            for (int i = 0; i < itemsInQueue; i++)
+            {
+                var result = _results.Dequeue();
+                result.CallBack(result.Path, result.SUCCESS);
+            }
+        }
     }
 
-    public static void ClearPathRequests()
+    public static void RequestPath(PathRequest request)
     {
-        _instance._pathRequests.Clear();
+        ThreadStart threadStart = delegate
+        {
+            _instance._pathFinder.FindPath(request, _instance.FinishedProcessingPath);
+        };
+        threadStart.Invoke();
     }
 
-    private void TryProcessNext()
+    public void FinishedProcessingPath(PathResult result)
     {
-        if (_isProcessingPath || _pathRequests.Count == 0) return;
-        _currentPathRequest = _pathRequests.Dequeue();
-        _isProcessingPath = true;
-        _pathFinder.StartFindPath(_currentPathRequest.PathStart, _currentPathRequest.PathEnd);
-    }
-
-    public void FinishedProcessingPath(Path path, bool success)
-    {
-        _currentPathRequest.Callback(path, success);
-        _isProcessingPath = false;
-        TryProcessNext();
+        lock (_results)
+        {
+            _results.Enqueue(result);
+        }
     }
 }

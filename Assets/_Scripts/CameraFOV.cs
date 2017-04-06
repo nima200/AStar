@@ -15,12 +15,13 @@ public class CameraFOV : MonoBehaviour {
     public Transform Bank;
     public Agent Cop;
     public Agent Robber;
-    public Path RobberPath;
+    public List<Vector3> RobberPath;
     public List<Path> PossiblePaths = new List<Path>();
     public Dictionary<Path, Pair<int, int>> PathMap = new Dictionary<Path, Pair<int, int>>();
 	public LayerMask targetMask;
 	public LayerMask obstacleMask;
     private bool FoundCutOff;
+    public int pathIndex;
 
 
 	public List<Transform> visibleTargets = new List<Transform>();
@@ -67,23 +68,21 @@ public class CameraFOV : MonoBehaviour {
 	                {
 	                    DetectedRobber = true;
 	                    visibleTargets.Add (target);
-	                    PathRequestManager.RequestPath(target.position, Bank.position, OnPathFound);
+	                    if (!FoundCutOff)
+	                    {
+	                        PathRequestManager.RequestPath(new PathRequest(target.position, Bank.position, OnDetectRobberPath));
+	                    }
 	                }
 	            }
 	        }
 	    }
 	}
 
-    private void OnPathFound(Path path, bool success)
+    private void OnDetectRobberPath(Path path, bool success)
     {
-        RobberPath = path;
 
-        var closetsToCop = path.Waypoints.OrderBy(p => Mathf.RoundToInt(Vector3.Distance(p, Cop.transform.position)));
-
-        foreach (var waypoint in closetsToCop)
-        {
-            PathRequestManager.RequestPath(Cop.transform.position, waypoint, CalculateTime);
-        }
+        RobberPath = path.Waypoints.OrderBy(p => Mathf.RoundToInt(Vector3.Distance(p, Cop.transform.position))).ToList();
+        PathRequestManager.RequestPath(new PathRequest(Cop.transform.position, RobberPath[pathIndex], CalculateTime));
     }
 
     private void FindCutoff()
@@ -94,12 +93,12 @@ public class CameraFOV : MonoBehaviour {
             FoundCutOff = true;
             var path = PathMap.First(p => p.Value.A < p.Value.B);
             Cop.StartPath(path.Key);
-            PathRequestManager.ClearPathRequests();
         }
         catch (InvalidOperationException)
         {
             FoundCutOff = false;
-            print("Cannot find a cut off path from cop to robber");
+            pathIndex++;
+            PathRequestManager.RequestPath(new PathRequest(Cop.transform.position, RobberPath[pathIndex], CalculateTime));
         }
     }
 
