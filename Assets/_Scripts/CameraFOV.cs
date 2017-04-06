@@ -3,8 +3,9 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 
-public class FieldOfView : MonoBehaviour {
+public class CameraFOV : MonoBehaviour {
 
 	public float viewRadius;
 	[Range(0,360)]
@@ -48,9 +49,9 @@ public class FieldOfView : MonoBehaviour {
 
 	void LateUpdate() {
 		DrawFieldOfView ();
-	}
+   }
 
-	void FindVisibleTargets() {
+	public virtual void FindVisibleTargets() {
 		visibleTargets.Clear ();
 		Collider[] targetsInViewRadius = Physics.OverlapSphere (transform.position, viewRadius, targetMask);
 
@@ -62,7 +63,7 @@ public class FieldOfView : MonoBehaviour {
 				if (!Physics.Raycast (transform.position, dirToTarget, dstToTarget, obstacleMask)) {
 					visibleTargets.Add (target);
                     PathRequestManager.RequestPath(target.position, Bank.position, OnPathFound);
-				}
+                }
 			}
 		}
 	}

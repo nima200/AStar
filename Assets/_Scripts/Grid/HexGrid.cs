@@ -85,6 +85,16 @@ public class HexGrid : MonoBehaviour
         label.text = hex.Coordinates.ToStringOnSeparateLines();
     }
 
+    public Hexagon FindRandomCopLocation()
+    {
+        while (true)
+        {
+            int x = UnityEngine.Random.Range(0, 50);
+            int y = UnityEngine.Random.Range(0, 50);
+            if (Hexagons[x, y].Walkable) return Hexagons[x, y];
+        }
+    }
+
     /// <summary>
     /// Hexagon from a given world position.
     /// If the hexagon is not found, throws an argument out of bounds
