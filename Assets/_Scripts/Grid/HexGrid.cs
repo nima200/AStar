@@ -170,8 +170,6 @@ public class HexGrid : MonoBehaviour
         if (Hexagons == null) return;
         if (DrawRegions)
         {
-            DrawHeatMap = false;
-            DrawPath = false;
             foreach (var hexagon in Hexagons)
             {
                 if (hexagon.RegionValue == 0)
@@ -195,7 +193,6 @@ public class HexGrid : MonoBehaviour
         }
         if (DrawHeatMap)
         {
-            DrawRegions = false;
             var fCosts = (from Hexagon hexagon in Hexagons select hexagon.FCost).ToList();
             fCosts.RemoveAll(value => value == 0);
             float maxFCost = fCosts.Max(t => t);
@@ -231,6 +228,7 @@ public class HexGrid : MonoBehaviour
                 if (Path != null && DrawPath)
                     if (Path.Contains(cell))
                         Gizmos.color = Color.black;
+                Gizmos.DrawMesh(cell.GetComponent<MeshFilter>().mesh, cell.transform.position);
             }
         
 

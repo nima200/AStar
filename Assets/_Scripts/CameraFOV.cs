@@ -11,6 +11,7 @@ public class CameraFOV : MonoBehaviour {
 	[Range(0,360)]
 	public float viewAngle;
 
+    public bool DetectedRobber;
     public Transform Bank;
     public Agent Cop;
     public Agent Robber;
@@ -52,20 +53,25 @@ public class CameraFOV : MonoBehaviour {
    }
 
 	public virtual void FindVisibleTargets() {
-		visibleTargets.Clear ();
-		Collider[] targetsInViewRadius = Physics.OverlapSphere (transform.position, viewRadius, targetMask);
+	    if (!DetectedRobber)
+	    {
+	        visibleTargets.Clear ();
+	        Collider[] targetsInViewRadius = Physics.OverlapSphere (transform.position, viewRadius, targetMask);
 
-		for (int i = 0; i < targetsInViewRadius.Length; i++) {
-			Transform target = targetsInViewRadius [i].transform;
-			Vector3 dirToTarget = (target.position - transform.position).normalized;
-			if (Vector3.Angle (transform.forward, dirToTarget) < viewAngle / 2) {
-				float dstToTarget = Vector3.Distance (transform.position, target.position);
-				if (!Physics.Raycast (transform.position, dirToTarget, dstToTarget, obstacleMask)) {
-					visibleTargets.Add (target);
-                    PathRequestManager.RequestPath(target.position, Bank.position, OnPathFound);
-                }
-			}
-		}
+	        for (int i = 0; i < targetsInViewRadius.Length; i++) {
+	            Transform target = targetsInViewRadius [i].transform;
+	            Vector3 dirToTarget = (target.position - transform.position).normalized;
+	            if (Vector3.Angle (transform.forward, dirToTarget) < viewAngle / 2) {
+	                float dstToTarget = Vector3.Distance (transform.position, target.position);
+	                if (!Physics.Raycast (transform.position, dirToTarget, dstToTarget, obstacleMask))
+	                {
+	                    DetectedRobber = true;
+	                    visibleTargets.Add (target);
+	                    PathRequestManager.RequestPath(target.position, Bank.position, OnPathFound);
+	                }
+	            }
+	        }
+	    }
 	}
 
     private void OnPathFound(Path path, bool success)
