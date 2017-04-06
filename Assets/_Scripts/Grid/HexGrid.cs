@@ -21,6 +21,11 @@ public class HexGrid : MonoBehaviour
     public LayerMask WalkableMask;
     public RegionType[] Regions;
     public Dictionary<int, int> RegionValueDictionary = new Dictionary<int, int>();
+    public int MaxHeapSize
+    {
+        get { return (int) Dimensions.x * (int) Dimensions.y; }
+    }
+    
 
 
     private void Awake()
