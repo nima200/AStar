@@ -21,6 +21,7 @@ public class Hexagon : MonoBehaviour
     private List<int> _triangles;
     private List<Vector2> _uvs;
     private Hexagon[] _neighbors;
+    public int RegionValue;
     // PROPERTY
     public int FCost { get { return GCost + HCost; } }
     public Renderer Renderer { get; private set; }
