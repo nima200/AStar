@@ -1,12 +1,14 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using Priority_Queue;
 using UnityEngine;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-public class Hexagon : MonoBehaviour
+public class Hexagon : MonoBehaviour, IHeapItem<Hexagon>
 {
     // PUBLIC
     public float Size;
@@ -21,6 +23,7 @@ public class Hexagon : MonoBehaviour
     private List<int> _triangles;
     private List<Vector2> _uvs;
     private Hexagon[] _neighbors;
+    public int RegionValue;
     // PROPERTY
     public int FCost { get { return GCost + HCost; } }
     public Renderer Renderer { get; private set; }
@@ -29,6 +32,8 @@ public class Hexagon : MonoBehaviour
     {
         get { return _neighbors.Where(neighbor => neighbor != null).ToList(); }
     }
+
+    public int HeapIndex { get; set; }
 
     /// <summary>
     /// Initialize all undeclared attributes created above.
@@ -148,5 +153,15 @@ public class Hexagon : MonoBehaviour
         float angleDeg = 60f * i + 30f;
         float angleRad = Mathf.PI / 180f * angleDeg;
         return new Vector3(center.x + size * Mathf.Cos(angleRad), 0, center.z + size * Mathf.Sin(angleRad));
+    }
+
+    public int CompareTo(Hexagon other)
+    {
+        int compare = FCost.CompareTo(other.FCost);
+        if (compare == 0)
+        {
+            compare = HCost.CompareTo(other.HCost);
+        }
+        return -compare;
     }
 }
