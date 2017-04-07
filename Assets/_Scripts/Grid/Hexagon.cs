@@ -164,4 +164,9 @@ public class Hexagon : MonoBehaviour, IHeapItem<Hexagon>
         }
         return -compare;
     }
+
+    public bool Equals(Hexagon other)
+    {
+        return Coordinates.Equals(other.Coordinates);
+    }
 }
