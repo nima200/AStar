@@ -4,14 +4,14 @@ using UnityEditor;
 
 /*
  * CopFOVEditor
- * Edits the city's camera GUI to make it visible in the scene and game modes
+ * Edits the cop's camera GUI to make it visible in the scene and game modes
  */
 
-[CustomEditor (typeof (CameraFOV))]
-public class FOVEditor : Editor {
+[CustomEditor (typeof (CopCamera))]
+public class CopFOVEditor : Editor {
 
 	void OnSceneGUI() {
-		CameraFOV fow = (CameraFOV)target;
+		CopCamera fow = (CopCamera)target;
 		Handles.color = Color.white;
 		Handles.DrawWireArc (fow.transform.position, Vector3.up, Vector3.forward, 360, fow.viewRadius);
 		Vector3 viewAngleA = fow.DirFromAngle (-fow.viewAngle / 2, false);
