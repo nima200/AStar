@@ -6,7 +6,7 @@ using System.Linq;
 using System.Diagnostics;
 using System.Security.Policy;
 using Priority_Queue;
-public enum Optimization { List, Heap, PriorityQueue}
+public enum Optimization {List, Heap, PriorityQueue}
 public class AStar : MonoBehaviour
 {
     private HexGrid _grid;

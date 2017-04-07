@@ -2,6 +2,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+/*
+ * CameraPatrol
+ * A simple script to make the cameras rotate at different speeds
+ */
 public class CameraPatrol : MonoBehaviour {
 
 	Transform curPos;
