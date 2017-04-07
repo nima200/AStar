@@ -6,18 +6,20 @@ using System.Linq;
 using System.Diagnostics;
 using System.Security.Policy;
 using Priority_Queue;
-public enum Optimization { AS_List, AS_Heap, AS_PriorityQueue, JPS_List}
+public enum Optimization { AS_List, AS_Heap, AS_PriorityQueue, JPS_List, JPS_Heap}
 public class AStar : MonoBehaviour
 {
     private HexGrid _grid;
     public Transform Source, Target;
     public Optimization Optimization;
-    public List<Hexagon> oLIST = new List<Hexagon>();
-    public HashSet<Hexagon> cLIST = new HashSet<Hexagon>();
+    private List<Hexagon> _oList = new List<Hexagon>();
+    private HashSet<Hexagon> _cList = new HashSet<Hexagon>();
+    private Heap<Hexagon> _oListHeap;
 
     private void Awake()
     {
         _grid = GetComponent<HexGrid>();
+        _oListHeap = new Heap<Hexagon>(_grid.MaxHeapSize);
     }
 
     private void Update()
@@ -39,7 +41,10 @@ public class AStar : MonoBehaviour
                 PathFind_PRIORITYQUEUE(request, callback);
                 break;
             case Optimization.JPS_List:
-                PathFind_JPS(request, callback);
+                PathFind_JPS_LIST(request, callback);
+                break;
+            case Optimization.JPS_Heap:
+                PathFind_JPS_HEAP(request, callback);
                 break;
         }
     }
@@ -227,7 +232,7 @@ public class AStar : MonoBehaviour
         return path.Select(hex => hex.transform.position).ToArray();
     }
 
-    public void PathFind_JPS(PathRequest request, Action<PathResult> callback)
+    public void PathFind_JPS_LIST(PathRequest request, Action<PathResult> callback)
     {
         var sw = new Stopwatch();
         sw.Start();
@@ -238,16 +243,16 @@ public class AStar : MonoBehaviour
         var startHex = _grid.HexFromPoint(request.PathStart);
         var endHex = _grid.HexFromPoint(request.PathEnd);
 
-        oLIST.Add(startHex);
-        while (oLIST.Count > 0)
+        _oList.Add(startHex);
+        while (_oList.Count > 0)
         {
-            var currentHex = oLIST[0];
-            for (int i = 1; i < oLIST.Count; i++)
+            var currentHex = _oList[0];
+            for (int i = 1; i < _oList.Count; i++)
             {
-                if (oLIST[i].FCost < currentHex.FCost && oLIST[i].FCost != currentHex.FCost) continue;
-                if (oLIST[i].HCost < currentHex.HCost)
+                if (_oList[i].FCost < currentHex.FCost && _oList[i].FCost != currentHex.FCost) continue;
+                if (_oList[i].HCost < currentHex.HCost)
                 {
-                    currentHex = oLIST[i];
+                    currentHex = _oList[i];
                 }
             }
 
@@ -261,7 +266,42 @@ public class AStar : MonoBehaviour
 
             IdentifySuccessors(currentHex, endHex);
 
-            cLIST.Add(currentHex);
+            _cList.Add(currentHex);
+        }
+        if (foundPath)
+        {
+            path = RetracePath(startHex, endHex);
+        }
+        callback(new PathResult(path, foundPath, request.Callback));
+    }
+
+    public void PathFind_JPS_HEAP(PathRequest request, Action<PathResult> callback)
+    {
+        var sw = new Stopwatch();
+        sw.Start();
+        var path = new Path();
+
+        bool foundPath = false;
+
+        var startHex = _grid.HexFromPoint(request.PathStart);
+        var endHex = _grid.HexFromPoint(request.PathEnd);
+
+        _oListHeap.Add(startHex);
+        while (_oListHeap.Count > 0)
+        {
+            var currentHex = _oListHeap.RemoveFirst();
+            _cList.Add(currentHex);
+            if (currentHex == endHex)
+            {
+                sw.Stop();
+                print("Path found: " + sw.ElapsedMilliseconds + "ms WITH JPS HEAP");
+                foundPath = true;
+                break;
+            }
+
+            IdentifySuccessors(currentHex, endHex);
+
+            
         }
         if (foundPath)
         {
@@ -289,13 +329,17 @@ public class AStar : MonoBehaviour
 
                 if (jumpHex != null)
                 {
-                    if (!oLIST.Contains(jumpHex) && !cLIST.Contains(jumpHex))
+                    if (!_oListHeap.Contains(jumpHex) && !_cList.Contains(jumpHex))
                     {
                         jumpHex.Parent = current;
                         int newCostToJumpHex = current.GCost + GetDistance(current, jumpHex);
                         jumpHex.GCost = newCostToJumpHex;
                         jumpHex.HCost = GetDistance(jumpHex, end);
-                        oLIST.Add(jumpHex);
+                        _oListHeap.Add(jumpHex);
+                    }
+                    else
+                    {
+                        _oListHeap.UpdateItem(jumpHex);
                     }
                 }
             }
@@ -361,7 +405,7 @@ public class AStar : MonoBehaviour
 
     public bool IsValidNeighbor(Hexagon hex, Hexagon neighbor)
     {
-        return neighbor != null && neighbor.Walkable && !cLIST.Contains(neighbor) && !neighbor.Equals(hex);
+        return neighbor != null && neighbor.Walkable && !_cList.Contains(neighbor) && !neighbor.Equals(hex);
     }
 
     private static int GetDistance(Hexagon a, Hexagon b)
