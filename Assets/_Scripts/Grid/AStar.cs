@@ -6,7 +6,7 @@ using System.Linq;
 using System.Diagnostics;
 using System.Security.Policy;
 using Priority_Queue;
-public enum Optimization { List, Heap, PriorityQueue}
+public enum Optimization { AS_List, AS_Heap, AS_PriorityQueue, JPS_List}
 public class AStar : MonoBehaviour
 {
     private HexGrid _grid;
@@ -29,14 +29,17 @@ public class AStar : MonoBehaviour
     {
         switch (Optimization)
         {
-            case Optimization.List:
+            case Optimization.AS_List:
                 PathFind_LIST(request, callback);
                 break;
-            case Optimization.Heap:
+            case Optimization.AS_Heap:
                 PathFind_HEAP(request, callback);
                 break;
-            case Optimization.PriorityQueue:
+            case Optimization.AS_PriorityQueue:
                 PathFind_PRIORITYQUEUE(request, callback);
+                break;
+            case Optimization.JPS_List:
+                PathFind_JPS(request, callback);
                 break;
         }
     }
@@ -63,7 +66,7 @@ public class AStar : MonoBehaviour
             var currentHex = openSet[0];
             for (int i = 1; i < openSet.Count; i++)
             {
-                if (openSet[i].FCost >= currentHex.FCost && openSet[i].FCost == currentHex.FCost) continue;
+                if (openSet[i].FCost >= currentHex.FCost && openSet[i].FCost != currentHex.FCost) continue;
                 if (openSet[i].HCost < currentHex.HCost)
                 {
                     currentHex = openSet[i];
@@ -224,7 +227,48 @@ public class AStar : MonoBehaviour
         return path.Select(hex => hex.transform.position).ToArray();
     }
 
+    public void PathFind_JPS(PathRequest request, Action<PathResult> callback)
+    {
+        var sw = new Stopwatch();
+        sw.Start();
+        var path = new Path();
 
+        bool foundPath = false;
+
+        var startHex = _grid.HexFromPoint(request.PathStart);
+        var endHex = _grid.HexFromPoint(request.PathEnd);
+
+        oLIST.Add(startHex);
+        while (oLIST.Count > 0)
+        {
+            var currentHex = oLIST[0];
+            for (int i = 1; i < oLIST.Count; i++)
+            {
+                if (oLIST[i].FCost < currentHex.FCost && oLIST[i].FCost != currentHex.FCost) continue;
+                if (oLIST[i].HCost < currentHex.HCost)
+                {
+                    currentHex = oLIST[i];
+                }
+            }
+
+            if (currentHex == endHex)
+            {
+                sw.Stop();
+                print("Path found: " + sw.ElapsedMilliseconds + "ms WITH JPS LIST");
+                foundPath = true;
+                break;
+            }
+
+            IdentifySuccessors(currentHex, endHex);
+
+            cLIST.Add(currentHex);
+        }
+        if (foundPath)
+        {
+            path = RetracePath(startHex, endHex);
+        }
+        callback(new PathResult(path, foundPath, request.Callback));
+    }
 
     public void IdentifySuccessors(Hexagon current, Hexagon end)
     {
