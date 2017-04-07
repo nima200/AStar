@@ -7,6 +7,7 @@ public class Agent : MonoBehaviour
 {
 
     public Path Path;
+    public bool DrawPath;
     public Transform Target;
     public float Speed = 5;
     private int _targetIndex;
@@ -56,8 +57,10 @@ public class Agent : MonoBehaviour
                 }
                 CurrentWaypoint = Path.Waypoints[_targetIndex];
             }
+            // LERPED movement
             /*transform.position = Vector3.MoveTowards(transform.position, currentWayPoint,
                     Speed * Time.fixedDeltaTime);*/
+            // DISCRETE movement
             transform.position = CurrentWaypoint;
             yield return new WaitForSeconds(0.1f);
         }
@@ -71,11 +74,12 @@ public class Agent : MonoBehaviour
 
     public void OnDrawGizmos()
     {
+        if (!DrawPath) return;
         if (Path == null) return;
         for (int i = _targetIndex; i < Path.Waypoints.Length; i++)
         {
             Gizmos.color = Color.black;
-            Gizmos.DrawSphere(Path.Waypoints[i], 4);
+            Gizmos.DrawSphere(Path.Waypoints[i], 6);
         }
     }
 }
