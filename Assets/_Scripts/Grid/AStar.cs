@@ -12,6 +12,8 @@ public class AStar : MonoBehaviour
     private HexGrid _grid;
     public Transform Source, Target;
     public Optimization Optimization;
+    public List<Hexagon> oLIST = new List<Hexagon>();
+    public HashSet<Hexagon> cLIST = new HashSet<Hexagon>();
 
     private void Awake()
     {
@@ -220,6 +222,102 @@ public class AStar : MonoBehaviour
     private static Vector3[] HexToVec3(IEnumerable<Hexagon> path)
     {
         return path.Select(hex => hex.transform.position).ToArray();
+    }
+
+
+
+    public void IdentifySuccessors(Hexagon current, Hexagon end)
+    {
+        // DIRECTIONS :                             NE, E, SE, SW,  W, NW
+        // HEX NEIGHBOR ARRAY COORDINATES:          0,  1,  2,  3,  4,  5
+        // CARDINALS:                               ^       ^       ^       [NE, SE,  W]
+        // DIAGONALS:                                   ^       ^       ^   [E,  SW, NW]
+        
+        for (int i = 0; i < 6; i++)
+        {
+            // if i is 0, 2, 4 we are cardinal
+            // if i is 1, 3, 5 we are diagonal
+            var neighbor = current.GetNeighbor(i);
+            // Do not consider null neighbors as it means current is at some edge of the grid.
+            if (IsValidNeighbor(current, neighbor))
+            {
+                var jumpHex = Jump(current, neighbor, i, end);
+
+                if (jumpHex != null)
+                {
+                    if (!oLIST.Contains(jumpHex) && !cLIST.Contains(jumpHex))
+                    {
+                        jumpHex.Parent = current;
+                        int newCostToJumpHex = current.GCost + GetDistance(current, jumpHex);
+                        jumpHex.GCost = newCostToJumpHex;
+                        jumpHex.HCost = GetDistance(jumpHex, end);
+                        oLIST.Add(jumpHex);
+                    }
+                }
+            }
+        }
+    }
+
+    public Hexagon Jump(Hexagon current, Hexagon next, int direction, Hexagon end)    
+    {
+        // If neighbor is blocked, we can't jump there. If neighbor doesn't exist 
+        // since current was on the edge of the grid, we can't jump to neighbor.
+        if (next == null || !next.Walkable) return null;
+
+        // If the next node is the end node, we have found the target so return it.
+        if (next.Equals(end)) return next;
+
+        // Diagonal case
+        if (direction == 1 || direction == 3 || direction == 5)
+        {
+            if (current.GetNeighbor((direction + 5) % 6) != null && next.GetNeighbor((direction + 5) % 6) != null)
+                if (!current.GetNeighbor((direction + 5) % 6).Walkable && next.GetNeighbor((direction + 5) % 6).Walkable)
+                    return next;
+            if (current.GetNeighbor((direction + 1) % 6) != null && next.GetNeighbor((direction + 1) % 6) != null)
+                if (!current.GetNeighbor((direction + 1) % 6).Walkable && next.GetNeighbor((direction + 1) % 6).Walkable)
+                    return next;
+            var nextCardinal_1 = next.GetNeighbor((direction + 5) % 6);
+            var nextCardinal_2 = next.GetNeighbor((direction + 1) % 6);
+            if (Jump(next, nextCardinal_1, (direction + 5) % 6, end) != null ||
+                Jump(next, nextCardinal_2, (direction + 1) % 6, end) != null)
+                return next;
+        }
+        // Cardinal case
+        else
+        {
+            var possibleDirections = new List<int>() {0, 2, 4};
+            possibleDirections.Remove((int) ((CellDirection) direction).Opposite());
+
+            if (direction == possibleDirections[0])
+            {
+                if (next.GetNeighbor(direction) != null && current.GetNeighbor((direction + 5) % 6) != null)
+                    if (next.GetNeighbor(direction).Walkable && !current.GetNeighbor((direction + 5) % 6).Walkable)
+                        if (next.GetNeighbor((direction + 5) % 6).Walkable)
+                            return next;
+                if (next.GetNeighbor(direction) != null && current.GetNeighbor((direction + 1) % 6) != null)
+                    if (next.GetNeighbor(direction).Walkable && !current.GetNeighbor((direction + 1) % 6).Walkable)
+                        if (next.GetNeighbor((direction + 1) % 6).Walkable)
+                            return next;
+            }
+            else
+            {
+                if (next.GetNeighbor(direction) != null && next.GetNeighbor((direction + 1) % 6) != null)
+                    if (next.GetNeighbor(direction).Walkable && !current.GetNeighbor((direction + 1) % 6).Walkable)
+                        if (next.GetNeighbor((direction + 1) % 6).Walkable)
+                            return next;
+                if (next.GetNeighbor(direction) != null && next.GetNeighbor((direction + 5) % 6) != null)
+                    if (next.GetNeighbor(direction).Walkable && !current.GetNeighbor((direction + 5) % 6).Walkable)
+                        if (next.GetNeighbor((direction + 5) % 6).Walkable)
+                            return next;
+            }
+        }
+        // No forced neighbors, so continue in the same direction
+        return Jump(next, next.GetNeighbor(direction), direction, end);
+    }
+
+    public bool IsValidNeighbor(Hexagon hex, Hexagon neighbor)
+    {
+        return neighbor != null && neighbor.Walkable && !cLIST.Contains(neighbor) && !neighbor.Equals(hex);
     }
 
     private static int GetDistance(Hexagon a, Hexagon b)
