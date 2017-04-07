@@ -12,6 +12,8 @@ public class Agent : MonoBehaviour
     public float Speed = 5;
     private int _targetIndex;
     public Vector3 CurrentWaypoint;
+    [HideInInspector]
+    public bool IsCaught;
 
     public void OnPathFound(Path newPath, bool pathFound)
     {

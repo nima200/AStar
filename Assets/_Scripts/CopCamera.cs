@@ -8,9 +8,8 @@ using UnityEngine;
  */
 
 public class CopCamera : CameraFOV {
-
 	// overrides the method to stop the robber when the officer sees him
-	override public void FindVisibleTargets() {
+	public override void FindVisibleTargets() {
 		if (!DetectedRobber)
 		{
 			visibleTargets.Clear ();

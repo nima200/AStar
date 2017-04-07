@@ -2,8 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using JetBrains.Annotations;
-using Priority_Queue;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -28,6 +26,8 @@ public class Hexagon : MonoBehaviour, IHeapItem<Hexagon>
     public int FCost { get { return GCost + HCost; } }
     public Renderer Renderer { get; private set; }
     public Hexagon Parent { get; set; }
+    public int X;
+    public int Y;
     public List<Hexagon> Neighbors
     {
         get { return _neighbors.Where(neighbor => neighbor != null).ToList(); }

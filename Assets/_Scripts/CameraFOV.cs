@@ -30,7 +30,7 @@ public class CameraFOV : MonoBehaviour {
     	public Dictionary<Path, Pair<int, int>> PathMap = new Dictionary<Path, Pair<int, int>>();
 	public LayerMask targetMask;
 	public LayerMask obstacleMask;
-    	private bool FoundCutOff;
+    	public bool FoundCutOff;
     	public int pathIndex;
 
 
@@ -44,7 +44,9 @@ public class CameraFOV : MonoBehaviour {
 	Mesh viewMesh;
 
 	// Creates the mesh for the camera FOV and searches for targets every fifth of a second (0.2f)
-	void Start() {
+	void Start()
+	{
+	    Bank = GameObject.Find("Bank").transform;
 		viewMesh = new Mesh ();
 		viewMesh.name = "View Mesh";
 		viewMeshFilter.mesh = viewMesh;
@@ -80,9 +82,10 @@ public class CameraFOV : MonoBehaviour {
 	            Vector3 dirToTarget = (target.position - transform.position).normalized;
 	            if (Vector3.Angle (transform.forward, dirToTarget) < viewAngle / 2) {
 	                float dstToTarget = Vector3.Distance (transform.position, target.position);
-	                if (!Physics.Raycast (transform.position, dirToTarget, dstToTarget, obstacleMask))
+	                if (!Physics.Raycast (transform.position, dirToTarget, dstToTarget, obstacleMask) && !Robber.IsCaught)
 	                {
 	                    DetectedRobber = true;
+	                    Robber.IsCaught = true;
 	                    visibleTargets.Add (target);
 	                    if (!FoundCutOff)
 	                    {

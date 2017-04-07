@@ -13,6 +13,10 @@ public class HexGrid : MonoBehaviour
     public Canvas GridCanvas;
     public Text CellLabelPrefab;
     public Hexagon HexagonPrefab;
+    public Agent CopPrefab;
+    public Agent Cop;
+    public Agent RobberPrefab;
+    public Agent Robber;
     public Hexagon[,] Hexagons { get; private set; }
     public LayerMask UnwalkableMask;
     public LayerMask WalkableMask;
@@ -48,6 +52,8 @@ public class HexGrid : MonoBehaviour
             }
         }
         Triangulate(Hexagons);
+
+        
     }
 
     private void CreateCells(int x, int z)
@@ -77,6 +83,8 @@ public class HexGrid : MonoBehaviour
             }
         }
         hex.RegionValue = regionValue;
+        hex.X = x;
+        hex.Y = z;
         // Set neighbors of the hexagon
         if (x > 0)
         {
@@ -110,12 +118,78 @@ public class HexGrid : MonoBehaviour
         label.text = hex.Coordinates.ToStringOnSeparateLines();
     }
 
+    public void PlaceCop()
+    {
+        if (Cop == null)
+        {
+            var coplocation = FindRandomCopLocation();
+            Cop = Instantiate(CopPrefab);
+            Cop.transform.position = coplocation.transform.position;
+            var cameras = FindObjectsOfType<CameraFOV>();
+            foreach (var cameraFov in cameras)
+            {
+                cameraFov.Cop = Cop;
+            }
+        }
+        else
+        {
+            var coplocation = FindRandomCopLocation();
+            Cop.transform.position = coplocation.transform.position;
+        }
+    }
+
     public Hexagon FindRandomCopLocation()
     {
         while (true)
         {
-            int x = UnityEngine.Random.Range(0, 50);
-            int y = UnityEngine.Random.Range(0, 50);
+            int x = UnityEngine.Random.Range(45, 66);
+            int y = UnityEngine.Random.Range(85, 116);
+            if (Hexagons[x, y].Walkable) return Hexagons[x, y];
+        }
+    }
+
+    public void PlaceRobber()
+    {
+        if (Robber == null)
+        {
+            var robberlocation = FindRandomRobberLocation();
+            Robber = Instantiate(RobberPrefab);
+            Robber.transform.position = robberlocation.transform.position;
+
+            var cameras = FindObjectsOfType<CameraFOV>();
+            foreach (var cameraFov in cameras)
+            {
+                cameraFov.Robber = Robber;
+            }
+        }
+        else
+        {
+            var robberlocation = FindRandomRobberLocation();
+            Robber.transform.position = robberlocation.transform.position;
+        }
+    }
+
+    public void RobberToBank()
+    {
+        foreach (var agent in FindObjectsOfType<Agent>())
+        {
+            agent.IsCaught = false;
+        }
+        foreach (var cameraFov in FindObjectsOfType<CameraFOV>())
+        {
+            cameraFov.FoundCutOff = false;
+            cameraFov.DetectedRobber = false;
+        }
+        var bank = GameObject.Find("Bank");
+        Robber.RequestPath(bank.transform);
+    }
+
+    public Hexagon FindRandomRobberLocation()
+    {
+        while (true)
+        {
+            int x = UnityEngine.Random.Range(0, 26);
+            int y = UnityEngine.Random.Range(0, 26);
             if (Hexagons[x, y].Walkable) return Hexagons[x, y];
         }
     }
