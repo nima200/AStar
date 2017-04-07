@@ -4,25 +4,25 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Linq;
 
+[RequireComponent(typeof(AStar), typeof(PathRequestManager))]
 public class HexGrid : MonoBehaviour
 {
     public bool DrawHeatMap;
-    public bool DrawPath;
     public bool DrawRegions;
     public Vector2 Dimensions;
     public Canvas GridCanvas;
     public Text CellLabelPrefab;
     public Hexagon HexagonPrefab;
     public Hexagon[,] Hexagons { get; private set; }
-    public List<Hexagon> Path;
     public LayerMask UnwalkableMask;
+    public LayerMask WalkableMask;
     public float InnerRadius { get; private set; }
     public float OuterRadius { get; private set; }
-    public LayerMask WalkableMask;
     public RegionType[] Regions;
     public Dictionary<int, int> RegionValueDictionary = new Dictionary<int, int>();
     public int MaxHeapSize
     {
+        // The maximum possible heap size for creating an array big enough in the heap.
         get { return (int) Dimensions.x * (int) Dimensions.y; }
     }
     
@@ -225,9 +225,6 @@ public class HexGrid : MonoBehaviour
                 {
                     Gizmos.color = new Color(0.3f, 0.3f, 0.3f);
                 }
-                if (Path != null && DrawPath)
-                    if (Path.Contains(cell))
-                        Gizmos.color = Color.black;
                 Gizmos.DrawMesh(cell.GetComponent<MeshFilter>().mesh, cell.transform.position);
             }
         
