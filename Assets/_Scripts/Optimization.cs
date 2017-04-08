@@ -1,1 +1,0 @@
-public enum Optimization { AStar_List, AStar_Heap, JPS_List, JPS_Heap}

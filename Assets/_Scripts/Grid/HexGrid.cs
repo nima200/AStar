@@ -34,16 +34,19 @@ public class HexGrid : MonoBehaviour
 
     private void Awake()
     {
+        // Calculation of inner and outer radius based on hex size given so that 
+        // hexes are placed at the correct location with the correct size.
         OuterRadius = HexagonPrefab.Size;
         InnerRadius = Mathf.Sqrt(3) / 2 * OuterRadius;
         Hexagons = new Hexagon[(int) Dimensions.x,(int) Dimensions.y];
 
+        // Detection of regions accross the map based on the layers of the colliders set
         foreach (var region in Regions)
         {
             WalkableMask.value |= region.RegionLayerMask.value;
             RegionValueDictionary.Add((int) Mathf.Log(region.RegionLayerMask.value, 2), region.RegionValue);
         }
-
+        // Populating the grid
         for (int y = 0; y < Dimensions.y; y++)
         {
             for (int x = 0; x < Dimensions.x; x++)
@@ -51,9 +54,8 @@ public class HexGrid : MonoBehaviour
                 CreateCells(x, y);
             }
         }
+        // Triangulating each hex in the grid with the respective mesh data set
         Triangulate(Hexagons);
-
-        
     }
 
     private void CreateCells(int x, int z)
@@ -73,6 +75,7 @@ public class HexGrid : MonoBehaviour
         // Instantiate a node for the hexagon
         hex.Walkable = !(Physics.CheckSphere(hex.transform.position, InnerRadius, UnwalkableMask));
         int regionValue = 0;
+        // Raycasting for the region layers and detecting which region does each cell fall into
         if (hex.Walkable)
         {
             var ray = new Ray(hex.transform.position + Vector3.up * 50, Vector3.down);
@@ -118,6 +121,8 @@ public class HexGrid : MonoBehaviour
         label.text = hex.Coordinates.ToStringOnSeparateLines();
     }
 
+    // Places the cop at a random location within a specific range in the city.
+    // If the cop did not exist in the scene before this, it will create it.
     public void PlaceCop()
     {
         if (Cop == null)
@@ -138,6 +143,7 @@ public class HexGrid : MonoBehaviour
         }
     }
 
+    // Finds a random, walkable, hex for the cop to spawn to
     public Hexagon FindRandomCopLocation()
     {
         while (true)
@@ -148,6 +154,8 @@ public class HexGrid : MonoBehaviour
         }
     }
 
+    // Places the robber at a random location within a specific range in the city.
+    // If the robber did not exist in the scene before this, it will create it.
     public void PlaceRobber()
     {
         if (Robber == null)
@@ -169,8 +177,16 @@ public class HexGrid : MonoBehaviour
         }
     }
 
+    // Resets the cells in the grid, as well as the flags set for catching the robber
+    // Needed for resetting the simulation, and sending a path finding request for the robber 
+    // To find a path to the bank
     public void RobberToBank()
     {
+        foreach (var hexagon in Hexagons)
+        {
+            hexagon.HCost = 0;
+            hexagon.GCost = 0;
+        }
         foreach (var agent in FindObjectsOfType<Agent>())
         {
             agent.IsCaught = false;
@@ -184,6 +200,7 @@ public class HexGrid : MonoBehaviour
         Robber.RequestPath(bank.transform);
     }
 
+    // Finds a random, walkable hex for the robber to spawn to
     public Hexagon FindRandomRobberLocation()
     {
         while (true)
@@ -239,6 +256,10 @@ public class HexGrid : MonoBehaviour
         return hexagon.Neighbors;
     }
 
+    // Used for the heat map generation. Essentially calculates the F Costs of the
+    // visited cells and calculates a color interpolation between the max and min (excluding 0 F Cost)
+    // values of the F Costs of each hex, compares the hex's values in that range, and interpolate/displays
+    // accordingly.
     private void OnDrawGizmos()
     {
         if (Hexagons == null) return;

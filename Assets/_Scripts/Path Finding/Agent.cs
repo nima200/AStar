@@ -21,6 +21,7 @@ public class Agent : MonoBehaviour
         {
             return;
         }
+        DrawPath = true;
         Path = newPath;
         StopCoroutine("FollowPath");
         StartCoroutine("FollowPath");
