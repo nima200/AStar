@@ -51,6 +51,7 @@ public class CameraFOV : MonoBehaviour {
 		viewMesh.name = "View Mesh";
 		viewMeshFilter.mesh = viewMesh;
 
+		// Starts the coroutine to look for a target every 0.2s
 		StartCoroutine ("FindTargetsWithDelay", 0.2f);
 	}
 
@@ -75,10 +76,12 @@ public class CameraFOV : MonoBehaviour {
 	    if (!DetectedRobber)
 	    {
 	        visibleTargets.Clear ();
+		// Handles the actual collision with a GameObject, checking it against a targetMask
 	        Collider[] targetsInViewRadius = Physics.OverlapSphere (transform.position, viewRadius, targetMask);
 
 	        for (int i = 0; i < targetsInViewRadius.Length; i++) {
-	            Transform target = targetsInViewRadius [i].transform;
+	            Transform target = targetsInViewRadius[i].transform;
+	            // Determines a direction to the target
 	            Vector3 dirToTarget = (target.position - transform.position).normalized;
 	            if (Vector3.Angle (transform.forward, dirToTarget) < viewAngle / 2) {
 	                float dstToTarget = Vector3.Distance (transform.position, target.position);
@@ -138,6 +141,7 @@ public class CameraFOV : MonoBehaviour {
 	// Draws the camera FOV and manages end of edges collisions from raycast
 	// (i.e., sharp delimitation from edge end points)
 	void DrawFieldOfView() {
+		// The mesh resolution is taken into account to deal with end vertices detection
 		int stepCount = Mathf.RoundToInt(viewAngle * meshResolution);
 		float stepAngleSize = viewAngle / stepCount;
 		List<Vector3> viewPoints = new List<Vector3> ();
@@ -147,6 +151,8 @@ public class CameraFOV : MonoBehaviour {
 			ViewCastInfo newViewCast = ViewCast (angle);
 
 			if (i > 0) {
+
+				// Smooths the end of an edge when raycasting to make it sharp (proportional to Mesh Resolution
 				bool edgeDstThresholdExceeded = Mathf.Abs (oldViewCast.dst - newViewCast.dst) > edgeDstThreshold;
 				if (oldViewCast.hit != newViewCast.hit || (oldViewCast.hit && newViewCast.hit && edgeDstThresholdExceeded)) {
 					EdgeInfo edge = FindEdge (oldViewCast, newViewCast);
@@ -165,11 +171,14 @@ public class CameraFOV : MonoBehaviour {
 			oldViewCast = newViewCast;
 		}
 
+
+		// Creates the actual mesh of the FOV (similarly to the requirements of Assignment 2)
 		int vertexCount = viewPoints.Count + 1;
 		Vector3[] vertices = new Vector3[vertexCount];
 		int[] triangles = new int[(vertexCount-2) * 3];
 
 		vertices [0] = Vector3.zero;
+		// Builds every triangle
 		for (int i = 0; i < vertexCount - 1; i++) {
 			vertices [i + 1] = transform.InverseTransformPoint(viewPoints [i]);
 
@@ -199,6 +208,7 @@ public class CameraFOV : MonoBehaviour {
 			float angle = (minAngle + maxAngle) / 2;
 			ViewCastInfo newViewCast = ViewCast (angle);
 
+			// Smooths the end of an edge when raycasting to make it sharp (proportional to Mesh Resolution
 			bool edgeDstThresholdExceeded = Mathf.Abs (minViewCast.dst - newViewCast.dst) > edgeDstThreshold;
 			if (newViewCast.hit == minViewCast.hit && !edgeDstThresholdExceeded) {
 				minAngle = angle;
